@@ -43,7 +43,7 @@ if ! type "conda" > /dev/null; then
 	echo 'export PATH="$HOME/anaconda2/bin:$PATH"'>>$HOME/.bashrc
 fi
 
-conda install psycopg2 gdal libgdal hdf5 rasterio netcdf4 libnetcdf pandas shapely
+conda install -y psycopg2 gdal libgdal hdf5 rasterio netcdf4 libnetcdf pandas shapely
 
 #AGDC Install: 
 git clone $REPO
