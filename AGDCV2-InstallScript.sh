@@ -77,4 +77,6 @@ EOF
 
 datacube -v system init
 source $HOME/.bashrc
+sudo mkdir /dc_storage
+sudo chown $USUARIO_CUBO /dc_storage
 #TODO: At this point an empty datacube is installed. Next steps are create datasets types, index datasets and ingest.  
