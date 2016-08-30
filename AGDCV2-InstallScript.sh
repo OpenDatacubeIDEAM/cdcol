@@ -80,3 +80,4 @@ source $HOME/.bashrc
 sudo mkdir /dc_storage
 sudo chown $USUARIO_CUBO /dc_storage
 #TODO: At this point an empty datacube is installed. Next steps are create datasets types, index datasets and ingest.  
+datacube product add ~/agdc-v2/docs/config_samples/dataset_types/ls7_scenes.yaml
