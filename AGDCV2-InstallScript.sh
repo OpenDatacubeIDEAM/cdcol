@@ -7,7 +7,7 @@ USUARIO_CUBO="$(whoami)"
 #DEFAUTLS; 
 PASSWORD_CUBO='ASDFADFASSDFA'
 ANACONDA_URL="https://repo.continuum.io/archive/Anaconda2-4.1.1-Linux-x86_64.sh"
-REPO="https://github.com/data-cube/agdc-v2"
+REPO="https://github.com/cronosnull/agdc-v2"
 BRANCH="develop"
 #Options:
 while getopts "a:p:r:b:h" opt; do
@@ -77,9 +77,15 @@ EOF
 
 datacube -v system init
 source $HOME/.bashrc
+sudo groupadd ingesters
 sudo mkdir /dc_storage
 sudo mkdir /source_storage
-sudo chown $USUARIO_CUBO /dc_storage
-sudo chown $USUARIO_CUBO /source_storage
+sudo chown $USUARIO_CUBO:ingesters /dc_storage
+sudo chmod -R g+rwxs /dc_storage
+sudo chown $USUARIO_CUBO:ingesters /source_storage
+sudo chmod -R g+rwxs /source_storage
 #TODO: At this point an empty datacube is installed. Next steps are create datasets types, index datasets and ingest.  
 datacube product add ~/agdc-v2/docs/config_samples/dataset_types/ls7_scenes.yaml
+datacube product add ~/agdc-v2/docs/config_samples/dataset_types/ls5_scenes.yaml
+datacube product add ~/agdc-v2/docs/config_samples/dataset_types/ls8_scenes.yaml
+datacube product add ~/agdc-v2/docs/config_samples/dataset_types/modis_tiles.yaml
