@@ -246,17 +246,29 @@ def wofs_classify(dataset_in, clean_mask=None, no_data=-9999, enforce_float64=Fa
     
     # Create xarray of data
     time = dataset_in.time
-    latitude = dataset_in.latitude
-    longitude = dataset_in.longitude
+    if hasattr(dataset_in,'latitude'):
+        latitude = dataset_in.latitude 
+        longitude = dataset_in.longitude 
     
-    data_array = xr.DataArray(classified_clean,
+        data_array = xr.DataArray(classified_clean,
                               coords=[time, latitude, longitude],
                               dims=['time', 'latitude', 'longitude'])
     
-    dataset_out = xr.Dataset({'wofs': data_array},
+        dataset_out = xr.Dataset({'wofs': data_array},
                              coords={'time': time,
                                      'latitude': latitude,
                                      'longitude': longitude})
+    else:
+        y = dataset_in.y 
+        x = dataset_in.x
+        data_array = xr.DataArray(classified_clean,
+                              coords=[time, y, x],
+                              dims=['time', 'y', 'x'])
+    
+        dataset_out = xr.Dataset({'wofs': data_array},
+                             coords={'time': time,
+                                     'y': y,
+                                     'x': x})
                                      
     return dataset_out
 

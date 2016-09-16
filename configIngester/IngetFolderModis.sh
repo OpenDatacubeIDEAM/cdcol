@@ -9,4 +9,11 @@ for folder in */
 do
 python ~/agdc-v2/utils/modisprepare.py $folder && datacube dataset add -a $folder
 done
-datacube ingest  -c $configFile
+threads=$( expr $(grep -c ^processor /proc/cpuinfo) - 1)
+if [ $threads -eq 0 ] 
+then
+	$threads = 1
+fi
+echo "Ingestion will be performed using $threads threads"
+datacube ingest --executor multiproc $threads -c $configFile
+rm -rf tmp

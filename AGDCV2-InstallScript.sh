@@ -7,7 +7,7 @@ USUARIO_CUBO="$(whoami)"
 #DEFAUTLS; 
 PASSWORD_CUBO='ASDFADFASSDFA'
 ANACONDA_URL="https://repo.continuum.io/archive/Anaconda2-4.1.1-Linux-x86_64.sh"
-REPO="https://github.com/cronosnull/agdc-v2"
+REPO="https://github.com/cronosnull/agdc-v2.git"
 BRANCH="develop"
 #Options:
 while getopts "a:p:r:b:h" opt; do
@@ -34,9 +34,13 @@ echo "Installation will be performed as  $USUARIO_CUBO"
 
 if [[ $(id -u) -eq 0 ]] ; then echo "This script must  not be excecuted as root or using sudo(althougth the user must be sudoer and password will be asked in some steps)" ; exit 1 ; fi
 #Prerequisites installation: 
-sudo apt install -y openssh-server postgresql-9.5 postgresql-client-9.5 postgresql-contrib-9.5 libgdal1-dev libhdf5-serial-dev libnetcdf-dev hdf5-tools netcdf-bin gdal-bin pgadmin3 postgresql-doc-9.5 libhdf5-doc netcdf-doc libgdal-doc git || exit 1
+while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
+   echo "Waiting while other process ends installs (dpkg/lock is locked)"
+   sleep 1
+done
+sudo apt install -y openssh-server postgresql-9.5 postgresql-client-9.5 postgresql-contrib-9.5 libgdal1-dev libhdf5-serial-dev libnetcdf-dev hdf5-tools netcdf-bin gdal-bin pgadmin3 postgresql-doc-9.5 libhdf5-doc netcdf-doc libgdal-doc git wget || exit 1
 
-if ! type "conda" > /dev/null; then
+if ! hash "conda" > /dev/null; then
 	mkdir -p ~/instaladores && wget -c -P ~/instaladores $ANACONDA_URL
 	bash ~/instaladores/Anaconda2-4.1.1-Linux-x86_64.sh -b -p $HOME/anaconda2
 	export PATH="$HOME/anaconda2/bin:$PATH"

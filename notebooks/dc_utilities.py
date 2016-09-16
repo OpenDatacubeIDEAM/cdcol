@@ -103,30 +103,45 @@ def perform_timeseries_analysis(dataset_in, no_data=-9999):
     data_dup.values[data.values == no_data] = 0
 
     processed_data_sum = data_dup.sum('time')
-
-    # Create xarray of data
-    time = data.time
-    latitude = data.latitude
-    longitude = data.longitude
-    
     # Masking no data values then converting boolean to int for easy summation
     clean_data_raw = np.reshape(np.in1d(data.values.reshape(-1), [no_data], invert=True),
                                         data.values.shape).astype(int)
+    # Create xarray of data
+    time = data.time
 
-    clean_data = xr.DataArray(clean_data_raw,
+    if hasattr(data, "latitude"):
+        latitude = data.latitude
+        longitude = data.longitude
+        clean_data = xr.DataArray(clean_data_raw,
                               coords=[time, latitude, longitude],
                               dims=['time', 'latitude', 'longitude'])
+    else:
+        y = data.y
+        x = data.x
+        clean_data = xr.DataArray(clean_data_raw,
+                              coords=[time, y, x],
+                              dims=['time', 'y', 'x'])
+
+    
+
+
+    
 
     clean_data_sum = clean_data.sum('time')
 
     processed_data_normalized = processed_data_sum/clean_data_sum
-    
-    dataset_out = xr.Dataset(collections.OrderedDict([('normalized_data', (['latitude', 'longitude'], processed_data_normalized)),
+    if hasattr(data, "latitude"):
+        dataset_out = xr.Dataset(collections.OrderedDict([('normalized_data', (['latitude', 'longitude'], processed_data_normalized)),
                                                       ('total_data', (['latitude', 'longitude'], processed_data_sum)),
                                                       ('total_clean', (['latitude', 'longitude'], clean_data_sum))]),
                              coords={'latitude': latitude,
                                      'longitude': longitude})
-
+    else:
+        dataset_out = xr.Dataset(collections.OrderedDict([('normalized_data', (['y', 'x'], processed_data_normalized)),
+                                                      ('total_data', (['y', 'x'], processed_data_sum)),
+                                                      ('total_clean', (['y', 'x'], clean_data_sum))]),
+                             coords={'y': y,
+                                     'x': x})
     return dataset_out
 
 def save_to_geotiff(out_file, data_type, dataset_in, geotransform, spatial_ref,
