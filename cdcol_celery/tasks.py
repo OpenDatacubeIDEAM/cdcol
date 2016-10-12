@@ -42,7 +42,7 @@ def medianas(min_lat,min_long,time_range,normalized=True,bands=["blue","green","
 @app.task
 def generic_task(execID,algorithm,version, output_expression,product, min_lat, min_long, time_ranges, **kwargs):
     """
-    Los primeros 6 parámetros deben ser dado por el ejecutor a partir de lo seleccionado por el usuario
+    Los primeros 8 parámetros deben ser dado por el ejecutor a partir de lo seleccionado por el usuario
         execID = id de la ejecución
         algorithm = nombre del algoritmo 
         version = versión del algoritmo a ejecutar
@@ -50,8 +50,7 @@ def generic_task(execID,algorithm,version, output_expression,product, min_lat, m
         product = producto seleccionado por el usuario (sobre el que se va a realizar la consulta)
         min_long = cordenada x de la esquina inferior izquierda del tile 
         min_lat = cordenada y de la esquina inferior izquierda del tile
-        time_range = rango de tiempo de la primera consulta (Obligatorio)
-        time_range2 = rango de tiempo de la segunda consulta (Opcional - para el caso en el que se requieren dos periodos de tiempo ej: PCA)
+        time_ranges = rangos de tiempo de las consultas (es un arreglo de tuplas, debe haber al menos una para realizar una consulta. (Obligatorio)
         kwargs = KeyWord arguments que usará el algoritmo (cuando se ejecute los verá como variables globales)
     """
     dc = datacube.Datacube(app=execID)
@@ -70,7 +69,7 @@ def generic_task(execID,algorithm,version, output_expression,product, min_lat, m
             except OSError as exc: # Guard against race condition
                 if exc.errno != errno.EEXIST:
                     raise
-        filename=folder+"/{}_{}_{}.nc".format(min_lat,min_long,re.sub('[^\w_.)(-]', '', str(time_ranges)))
+        filename=folder+"{}_{}_{}.nc".format(min_lat,min_long,re.sub('[^\w_.)(-]', '', str(time_ranges)))
         nco=netcdf_writer.create_netcdf(filename)
         output=  kwargs["output"]
         coords=output.coords
