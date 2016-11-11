@@ -38,7 +38,7 @@ while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
    echo "Waiting while other process ends installs (dpkg/lock is locked)"
    sleep 1
 done
-sudo apt install -y openssh-server postgresql-9.5 postgresql-client-9.5 postgresql-contrib-9.5 libgdal1-dev libhdf5-serial-dev libnetcdf-dev hdf5-tools netcdf-bin gdal-bin pgadmin3 postgresql-doc-9.5 libhdf5-doc netcdf-doc libgdal-doc git wget || exit 1
+sudo apt install -y openssh-server postgresql-9.5 postgresql-client-9.5 postgresql-contrib-9.5 libgdal1-dev libhdf5-serial-dev libnetcdf-dev hdf5-tools netcdf-bin gdal-bin pgadmin3 postgresql-doc-9.5 libhdf5-doc netcdf-doc libgdal-doc git wget htop rabbitmq-server|| exit 1
 
 if ! hash "conda" > /dev/null; then
 	mkdir -p ~/instaladores && wget -c -P ~/instaladores $ANACONDA_URL
@@ -88,8 +88,27 @@ sudo chown $USUARIO_CUBO:ingesters /dc_storage
 sudo chmod -R g+rwxs /dc_storage
 sudo chown $USUARIO_CUBO:ingesters /source_storage
 sudo chmod -R g+rwxs /source_storage
+#Crear un usuario ingestor
+pass=$(perl -e 'print crypt($ARGV[0], "password")' "uniandes")
+sudo useradd  --no-create-home -G ingesters -p $pass ingestor --shell="/usr/sbin/nologin" --home /source_storage  -K UMASK=002
+
 #TODO: At this point an empty datacube is installed. Next steps are create datasets types, index datasets and ingest.  
 datacube product add ~/agdc-v2/docs/config_samples/dataset_types/ls7_scenes.yaml
 datacube product add ~/agdc-v2/docs/config_samples/dataset_types/ls5_scenes.yaml
 datacube product add ~/agdc-v2/docs/config_samples/dataset_types/ls8_scenes.yaml
 datacube product add ~/agdc-v2/docs/config_samples/dataset_types/modis_tiles.yaml
+
+#Celery Install
+conda install -c conda-forge celery=3.1.23 flower
+sudo rabbitmqctl add_user cdcol cdcol
+sudo rabbitmqctl add_vhost cdcol
+sudo rabbitmqctl set_user_tags cdcol cdcol_tag
+sudo rabbitmqctl set_permissions -p cdcol cdcol ".*" ".*" ".*"
+sudo rabbitmq-plugins enable rabbitmq_management
+sudo rabbitmqctl set_user_tags cdcol cdcol_tag administrator
+sudo service rabbitmq-server restart
+ip=`hostname -I | awk '{ print $1 }'`
+echo "iniciando conda en la ip $ip en el puerto 8082"
+nohup celery -A cdcol_celery flower --port=8082 --address=$ip --persistent &
+
+echo "Para que funcione el sftp del usuario ingestor se necesita cambiar 'Subsystem sftp /usr/lib/openssh/sftp-server' por 'Subsystem sftp internal-sftp' en /etc/ssh/sshd_config"
