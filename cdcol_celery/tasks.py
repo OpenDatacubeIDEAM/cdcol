@@ -59,10 +59,11 @@ def generic_task(execID,algorithm,version, output_expression,product, min_lat, m
         kwargs["xarr"+str(i)] = dc.load(product=product, longitude=(min_long, min_long+1.0), latitude=(min_lat, min_lat+1), time=tr)
         i+=1
     exec(open(ALGORITHMS_FOLDER+"/"+algorithm+"/"+algorithm+"_"+str(version)+".py").read(),kwargs)
+    fns=[]
+    folder = "{}/{}_{}/{}/".format(RESULTS_FOLDER,algorithm,str(version),execID)
     if "output" in kwargs: #output debería ser un xarray
         #Guardar a un archivo...
-        folder = "{}/{}_{}/{}/".format(RESULTS_FOLDER,algorithm,str(version),execID)
-       
+              
         if not os.path.exists(os.path.dirname(folder)):
             try:
                 os.makedirs(os.path.dirname(folder))
@@ -83,6 +84,17 @@ def generic_task(execID,algorithm,version, output_expression,product, min_lat, m
             var= netcdf_writer.create_variable(nco, band, Variable(np.dtype(np.float64), nodata, cnames, None) ,set_crs=True)
             var[:] = netcdf_writer.netcdfy_data(output.data_vars[band].values)
         nco.close()
-        return filename
-    else:
-        return 'None'
+        fns.append[filename]
+    if "outputtxt":
+        if not os.path.exists(os.path.dirname(folder)):
+            try:
+                os.makedirs(os.path.dirname(folder))
+            except OSError as exc: # Guard against race condition
+                if exc.errno != errno.EEXIST:
+                    raise
+        filename=folder+"{}_{}_{}.txt".format(min_lat,min_long,re.sub('[^\w_.)(-]', '', str(time_ranges)))
+        with open(filename, "w") as text_file:
+            text_file.write(kwargs["outputtxt"])
+        fns.append[filename]
+    return fns;
+        
