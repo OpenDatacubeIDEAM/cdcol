@@ -1,4 +1,3 @@
-
 # coding: utf-8
 from datacube.ui import click as ui
 from datacube.scripts.ingest import *
@@ -7,7 +6,6 @@ from pprint import pprint
 import sys
 
 def main (argv):
-    
     config =  "/home/cubo/configIngester/ls7_ledaps_wgs84.yaml"
     if len (argv)>1: 
         config=argv[1]

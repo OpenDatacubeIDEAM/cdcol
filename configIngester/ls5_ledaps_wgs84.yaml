@@ -1,20 +1,20 @@
-source_type: ls7_ledaps_scene
-output_type: ls7_ledaps_wgs84
+source_type: ls5_ledaps_scene
+output_type: ls5_ledaps_wgs84
 
-description: Landsat 7 LEDAPS 30 meters, 100km tile, WGS84 Projection (EPSG:4326)
+description: Landsat 5 LEDAPS 30 meters, 100km tile, WGS84 Projection (EPSG:4326)
 
 location: '/dc_storage'
-file_path_template: 'LS7_ETM_LEDAPS/LS7_ETM_LEDAPS_4326_{tile_index[0]}_{tile_index[1]}_{start_time}.nc'
+file_path_template: 'LS5_TM_LEDAPS/LS5_TM_LEDAPS_4326_{tile_index[0]}_{tile_index[1]}_{start_time}.nc'
 global_attributes:
   title: CEOS Data Cube Landsat Surface Reflectance
-  summary: Landsat 7 Enhanced Thematic Mapper Plus Analysis Ready data prepared by NASA on behalf of CEOS.
+  summary: Landsat 5 Thematic Mapper Analysis Ready data prepared by NASA on behalf of CEOS.
   source: Surface reflectance from LEDAPS
-  institution: IDEAM
-  instrument: ETM
+  institution: CEOS
+  instrument: TM
   cdm_data_type: Grid
   keywords: AU/GA,NASA/GSFC/SED/ESD/LANDSAT,REFLECTANCE,ETM+,TM,OLI,EARTH SCIENCE
   keywords_vocabulary: GCMD
-  platform: LANDSAT-7
+  platform: LANDSAT-5
   processing_level: L2
   product_version: '2.0.0'
   product_suite: USGS Landsat
@@ -38,9 +38,11 @@ storage:
   tile_size:
           latitude: 0.99973161915
           longitude: 0.99973161915
+
   resolution:
           latitude: -0.00027129759
           longitude: 0.00027129759
+
   chunking:
       latitude: 200
       longitude: 200
@@ -120,7 +122,7 @@ measurements:
           long_name: "CFmask Cloud Confidence"
     - name: adjacent_cloud_qa
       dtype: int16
-      nodata: 255
+      nodata: 0
       resampling_method: nearest
       src_varname: 'sr_adjacent_cloud_qa'
       zlib: True
