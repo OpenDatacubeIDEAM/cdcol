@@ -84,8 +84,8 @@ def generic_task(execID,algorithm,version, output_expression,product, min_lat, m
             var= netcdf_writer.create_variable(nco, band, Variable(np.dtype(np.float64), nodata, cnames, None) ,set_crs=True)
             var[:] = netcdf_writer.netcdfy_data(output.data_vars[band].values)
         nco.close()
-        fns.append[filename]
-    if "outputtxt":
+        fns.append(filename)
+    if "outputtxt" in kwargs:
         if not os.path.exists(os.path.dirname(folder)):
             try:
                 os.makedirs(os.path.dirname(folder))
@@ -95,6 +95,6 @@ def generic_task(execID,algorithm,version, output_expression,product, min_lat, m
         filename=folder+"{}_{}_{}.txt".format(min_lat,min_long,re.sub('[^\w_.)(-]', '', str(time_ranges)))
         with open(filename, "w") as text_file:
             text_file.write(kwargs["outputtxt"])
-        fns.append[filename]
+        fns.append(filename)
     return fns;
         
