@@ -12,34 +12,6 @@ ALGORITHMS_FOLDER = os.path.expanduser('~')+"/algorithms"
 RESULTS_FOLDER = "/Results"
 nodata=-9999
 @app.task
-def longtime_add(x, y):
-    print 'long time task begins'
-    # sleep 5 seconds
-    time.sleep(5)
-    print 'long time task finished'
-    return x + y
-
-
-@app.task
-def medianas(min_lat,min_long,time_range,normalized=True,bands=["blue","green","red","nir", "swir1","swir2"], minValid=1):
-    longs=(min_long,min_long+1)
-    lats=(min_lat,min_lat+1)
-    dc = datacube.Datacube(app='dc-prueba1')
-    nbar = dc.load(product='ls7_ledaps_utm18n4', longitude=longs, latitude=lats, time=time_range)
-   
-    medians={}
-    for band in bands:
-        datos=np.where(nbar.data_vars[band]!=nodata,nbar.data_vars[band], np.nan)
-        allNan=~np.isnan(datos)
-        if normalized:
-            m=np.nanmean(datos.reshape((datos.shape[0],-1)), axis=1)
-            st=np.nanstd(datos.reshape((datos.shape[0],-1)), axis=1)
-            datos=np.true_divide((datos-m[:,np.newaxis,np.newaxis]), st[:,np.newaxis,np.newaxis])*np.nanmean(st)+np.nanmean(m)
-        medians[band]=np.nanmedian(datos,0)
-        medians[band][np.sum(allNan,0)<minValid]=np.nan
-    del datos
-    return medians
-@app.task
 def generic_task(execID,algorithm,version, output_expression,product, min_lat, min_long, time_ranges, **kwargs):
     """
     Los primeros 8 parámetros deben ser dado por el ejecutor a partir de lo seleccionado por el usuario
@@ -81,7 +53,7 @@ def generic_task(execID,algorithm,version, output_expression,product, min_lat, m
         netcdf_writer.create_grid_mapping_variable(nco, output.crs)
         for band in output.data_vars:
             output.data_vars[band].values[np.isnan(output.data_vars[band].values)]=nodata
-            var= netcdf_writer.create_variable(nco, band, Variable(np.dtype(np.float64), nodata, cnames, None) ,set_crs=True)
+            var= netcdf_writer.create_variable(nco, band, Variable(output.data_vars[band].dtype, nodata, cnames, None) ,set_crs=True)
             var[:] = netcdf_writer.netcdfy_data(output.data_vars[band].values)
         nco.close()
         fns.append(filename)
