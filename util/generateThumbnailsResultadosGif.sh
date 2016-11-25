@@ -21,10 +21,13 @@ if `gdalinfo $file |grep -q "SUBDATASET.*"`
 then
 echo "Escribiendo los thumbnails para el archivo $file y la banda ${ds##*\:}"
 gdal_translate  -a_srs EPSG:32618  -stats -of PNG -scale -outsize $RES $RES $ds $TN_FOLDER/${bn%.nc}.${ds##*\:}.png
+convert -transparent "#000000" $TN_FOLDER/${bn%.nc}.${ds##*\:}.png $TN_FOLDER/${bn%.nc}.${ds##*\:}.png
 else
 echo "Escribiendo el thumbnail para el archivo $file"
-gdal_translate  -a_srs EPSG:32618 -stats -of PNG -scale  -outsize $RES $RES $file $TN_FOLDER/${bn%.nc}.png
+gdal_translate  -a_srs EPSG:32618 -stats -of PNG -scale -ot Byte -outsize $RES $RES $file $TN_FOLDER/${bn%.nc}.png
+convert -transparent "#000000" $TN_FOLDER/${bn%.nc}.png $TN_FOLDER/${bn%.nc}.png
 fi
+
 done
 done
 
