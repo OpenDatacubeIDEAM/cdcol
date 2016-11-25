@@ -11,6 +11,19 @@ import re
 ALGORITHMS_FOLDER = os.path.expanduser('~')+"/algorithms"
 RESULTS_FOLDER = "/Results"
 nodata=-9999
+def saveNC(output,filename):
+    nco=netcdf_writer.create_netcdf(filename)
+    coords=output.coords
+    cnames=()
+    for x in coords:
+        netcdf_writer.create_coordinate(nco, x, coords[x].values, coords[x].units)
+        cnames=cnames+(x,)
+    netcdf_writer.create_grid_mapping_variable(nco, output.crs)
+    for band in output.data_vars:
+        output.data_vars[band].values[np.isnan(output.data_vars[band].values)]=nodata
+        var= netcdf_writer.create_variable(nco, band, Variable(output.data_vars[band].dtype, nodata, cnames, None) ,set_crs=True)
+        var[:] = netcdf_writer.netcdfy_data(output.data_vars[band].values)
+    nco.close()
 @app.task
 def generic_task(execID,algorithm,version, output_expression,product, min_lat, min_long, time_ranges, **kwargs):
     """
@@ -32,41 +45,34 @@ def generic_task(execID,algorithm,version, output_expression,product, min_lat, m
         i+=1
     exec(open(ALGORITHMS_FOLDER+"/"+algorithm+"/"+algorithm+"_"+str(version)+".py").read(),kwargs)
     fns=[]
-    folder = "{}/{}_{}/{}/".format(RESULTS_FOLDER,algorithm,str(version),execID)
+    folder = "{}/{}/".format(RESULTS_FOLDER,execID)
+    if not os.path.exists(os.path.dirname(folder)):
+        try:
+            os.makedirs(os.path.dirname(folder))
+        except OSError as exc: # Guard against race condition
+            if exc.errno != errno.EEXIST:
+                raise
     if "output" in kwargs: #output debería ser un xarray
         #Guardar a un archivo...
-              
-        if not os.path.exists(os.path.dirname(folder)):
-            try:
-                os.makedirs(os.path.dirname(folder))
-            except OSError as exc: # Guard against race condition
-                if exc.errno != errno.EEXIST:
-                    raise
-        filename=folder+"{}_{}_{}.nc".format(min_lat,min_long,re.sub('[^\w_.)(-]', '', str(time_ranges)))
-        nco=netcdf_writer.create_netcdf(filename)
+        filename=folder+"{}_{}_{}_{}_{}_output.nc".format(algorithm,str(version),min_lat,min_long,re.sub('[^\w_.)(-]', '', str(time_ranges)))
         output=  kwargs["output"]
-        coords=output.coords
-        cnames=()
-        for x in coords:
-            netcdf_writer.create_coordinate(nco, x, coords[x].values, coords[x].units)
-            cnames=cnames+(x,)
-        netcdf_writer.create_grid_mapping_variable(nco, output.crs)
-        for band in output.data_vars:
-            output.data_vars[band].values[np.isnan(output.data_vars[band].values)]=nodata
-            var= netcdf_writer.create_variable(nco, band, Variable(output.data_vars[band].dtype, nodata, cnames, None) ,set_crs=True)
-            var[:] = netcdf_writer.netcdfy_data(output.data_vars[band].values)
-        nco.close()
+        saveNC(output,filename)
         fns.append(filename)
+    if "outputs" in kwargs:
+        for xa in kwargs["outputs"]:
+            filename=folder+"{}_{}_{}_{}_{}_{}.nc".format(algorithm,str(version),min_lat,min_long,re.sub('[^\w_.)(-]', '', str(time_ranges)),xa)
+            saveNC(kwargs["outputs"][xa],filename)
+            fns.append(filename)
     if "outputtxt" in kwargs:
-        if not os.path.exists(os.path.dirname(folder)):
-            try:
-                os.makedirs(os.path.dirname(folder))
-            except OSError as exc: # Guard against race condition
-                if exc.errno != errno.EEXIST:
-                    raise
         filename=folder+"{}_{}_{}.txt".format(min_lat,min_long,re.sub('[^\w_.)(-]', '', str(time_ranges)))
         with open(filename, "w") as text_file:
             text_file.write(kwargs["outputtxt"])
         fns.append(filename)
     return fns;
-        
+@app.task
+def runCmd(execID, cmd):
+    """
+    Ejecuta un comando dado por parámetro (cmd es una lista de strings que define el comando y sus parámetros)
+    """
+    import subprocess
+    subprocess.call(cmd)

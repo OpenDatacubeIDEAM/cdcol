@@ -15,7 +15,10 @@ if __name__ == '__main__':
     print result
     #Test PCA
     result = group(generic_task.s(execID="pca",algorithm="pca",version="1",output_expression="",product="LS8_OLI_LEDAPS",min_lat=Y,min_long=X,time_ranges=[("2014-01-01","2014-06-30"),("2014-07-01","2014-12-31")],normalized=True, minValid=1,bands=["blue","green","red","nir", "swir1","swir2"] ) for Y in xrange(1,2) for X in xrange(-74,-73)).delay()
-    print result    
+    print result 
+    #Test WOFS
+    result = group(generic_task.s(execID="wofs-exec2",algorithm="wofs",version="1.0",output_expression="",product="LS8_OLI_LEDAPS",min_lat=Y,min_long=X,time_ranges=[("2014-01-01","2014-12-31")]) for Y in xrange(1,2) for X in xrange(-74,-73)).delay()
+    print result
 
     
 

@@ -35,4 +35,3 @@ variables ={"ndvi": xr.DataArray(period_nvdi, dims=xdims,coords=ncoords)}
 output=xr.Dataset(variables, attrs={'crs':nbar.crs})
 for x in output.coords:
     output.coords[x].attrs["units"]=nbar.coords[x].units
-print output
