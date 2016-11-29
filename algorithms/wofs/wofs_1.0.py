@@ -351,9 +351,5 @@ output = wofs_classify(xarr0)
 time_series = perform_timeseries_analysis(output)
 output.attrs["crs"]=xarr0.crs
 outputs={}
-outputs["normalizado"] = time_series.normalized_data
-outputs["normalizado"].attrs["crs"]==xarr0.crs
-outputs["total_clean"] = time_series.total_clean
-outputs["total_clean"].attrs["crs"]==xarr0.crs
-outputs["total_data"] = time_series.total_data
-outputs["total_data"].attrs["crs"]==xarr0.crs
+outputs["time_series"]=time_series
+outputs["time_series"].attrs["crs"]=xarr0.crs

@@ -11,8 +11,11 @@ import re
 ALGORITHMS_FOLDER = os.path.expanduser('~')+"/algorithms"
 RESULTS_FOLDER = "/Results"
 nodata=-9999
-def saveNC(output,filename):
+def saveNC(output,filename, history):
+
     nco=netcdf_writer.create_netcdf(filename)
+    nco.history = (history.decode('utf-8').encode('ascii','replace'))
+
     coords=output.coords
     cnames=()
     for x in coords:
@@ -52,16 +55,17 @@ def generic_task(execID,algorithm,version, output_expression,product, min_lat, m
         except OSError as exc: # Guard against race condition
             if exc.errno != errno.EEXIST:
                 raise
+    history = u'Creado con CDCOL con el algoritmo {} y  ver. {}'.format(algorithm,str(version))
     if "output" in kwargs: #output debería ser un xarray
         #Guardar a un archivo...
         filename=folder+"{}_{}_{}_{}_{}_output.nc".format(algorithm,str(version),min_lat,min_long,re.sub('[^\w_.)(-]', '', str(time_ranges)))
         output=  kwargs["output"]
-        saveNC(output,filename)
+        saveNC(output,filename, history)
         fns.append(filename)
     if "outputs" in kwargs:
         for xa in kwargs["outputs"]:
             filename=folder+"{}_{}_{}_{}_{}_{}.nc".format(algorithm,str(version),min_lat,min_long,re.sub('[^\w_.)(-]', '', str(time_ranges)),xa)
-            saveNC(kwargs["outputs"][xa],filename)
+            saveNC(kwargs["outputs"][xa],filename, history)
             fns.append(filename)
     if "outputtxt" in kwargs:
         filename=folder+"{}_{}_{}.txt".format(min_lat,min_long,re.sub('[^\w_.)(-]', '', str(time_ranges)))

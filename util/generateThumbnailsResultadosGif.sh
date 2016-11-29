@@ -14,21 +14,34 @@ RES="${2:-500}"
 mkdir -p $TN_FOLDER
 for file in $FOLDER/*.nc
 do
-for ds in `gdalinfo $file |grep -Eo "NETCDF.*"`
-do
 bn=`basename $file`
 if `gdalinfo $file |grep -q "SUBDATASET.*"`
 then
-echo "Escribiendo los thumbnails para el archivo $file y la banda ${ds##*\:}"
-gdal_translate  -a_srs EPSG:32618  -stats -of PNG -scale -outsize $RES $RES $ds $TN_FOLDER/${bn%.nc}.${ds##*\:}.png
-convert -transparent "#000000" $TN_FOLDER/${bn%.nc}.${ds##*\:}.png $TN_FOLDER/${bn%.nc}.${ds##*\:}.png
+	for ds in `gdalinfo $file |grep -Eo "NETCDF.*"`
+	do
+	echo "Escribiendo los thumbnails para el archivo $file y la banda ${ds##*\:}"
+	gdal_translate  -a_srs EPSG:32618   -stats -of PNG -scale -ot Byte -outsize $RES $RES $ds $TN_FOLDER/${bn%.nc}.${ds##*\:}.png
+	convert -transparent "#000000" $TN_FOLDER/${bn%.nc}.${ds##*\:}.png $TN_FOLDER/${bn%.nc}.${ds##*\:}.png
+	done
 else
-echo "Escribiendo el thumbnail para el archivo $file"
-gdal_translate  -a_srs EPSG:32618 -stats -of PNG -scale -ot Byte -outsize $RES $RES $file $TN_FOLDER/${bn%.nc}.png
-convert -transparent "#000000" $TN_FOLDER/${bn%.nc}.png $TN_FOLDER/${bn%.nc}.png
-fi
+	
+	nb=`gdalinfo $file |grep  Band|wc -l`
+	echo $nb 
+	if [[ $nb -le 1 ]]
+	then
+		echo "Escribiendo el thumbnail para el archivo $file"
+		gdal_translate  -a_srs EPSG:32618  -stats -of PNG -scale -ot Byte -outsize $RES $RES $file $TN_FOLDER/${bn%.nc}.png
+		convert -transparent "#000000" $TN_FOLDER/${bn%.nc}.png $TN_FOLDER/${bn%.nc}.png
+	else
+		for i in $(seq 1 $nb)
+		do
+		echo "Escribiendo el thumbnail para el archivo $file banda $i"
 
-done
+		gdal_translate  -a_srs EPSG:32618  -stats -of PNG -scale -ot Byte -b $i -outsize $RES $RES $file $TN_FOLDER/${bn%.nc}.$i.png
+		convert -transparent "#000000" $TN_FOLDER/${bn%.nc}.$i.png $TN_FOLDER/${bn%.nc}.$i.png
+		done
+	fi
+fi
 done
 
 convert -delay 20 -loop 0 $TN_FOLDER/*.png $TN_FOLDER/animated.gif

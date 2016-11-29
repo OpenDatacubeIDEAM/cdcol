@@ -5,7 +5,7 @@
 #Parámetros Opcionales:Carpeta resolución
 
 #GDAL_DATA Debería estar definida en el entorno, si no, toca definirla.
-GDAL_DATA="${GDAL_DATA:-/usr/share/gdal/1.11}"
+export GDAL_DATA="${GDAL_DATA:-/usr/share/gdal/1.11}"
 
 FOLDER="${1:-.}"
 TN_FOLDER="$FOLDER/thumbnails"
@@ -13,16 +13,32 @@ RES="${2:-500}"
 mkdir -p $TN_FOLDER
 for file in $FOLDER/*.nc
 do
-for ds in `gdalinfo $file |grep -Eo "NETCDF.*"`
-do
 bn=`basename $file`
 if `gdalinfo $file |grep -q "SUBDATASET.*"`
 then
-echo "Escribiendo los thumbnails para el archivo $file y la banda ${ds##*\:}"
-gdal_translate  -a_srs EPSG:32618 -a_nodata -9999 -stats -of PNG -scale -outsize $RES $RES $ds $TN_FOLDER/${bn%.nc}.${ds##*\:}.png
+	for ds in `gdalinfo $file |grep -Eo "NETCDF.*"`
+	do
+	echo "Escribiendo los thumbnails para el archivo $file y la banda ${ds##*\:}"
+	gdal_translate  -a_srs EPSG:32618   -stats -of PNG -scale -ot Byte -outsize $RES $RES $ds $TN_FOLDER/${bn%.nc}.${ds##*\:}.png
+	convert -transparent "#000000" $TN_FOLDER/${bn%.nc}.${ds##*\:}.png $TN_FOLDER/${bn%.nc}.${ds##*\:}.png
+	done
 else
-echo "Escribiendo el thumbnail para el archivo $file"
-gdal_translate  -a_srs EPSG:32618 -a_nodata -9999 -stats -of PNG -scale -outsize $RES $RES $file $TN_FOLDER/${bn%.nc}.png
+	
+	nb=`gdalinfo $file |grep  Band|wc -l`
+	echo $nb 
+	if [[ $nb -le 1 ]]
+	then
+		echo "Escribiendo el thumbnail para el archivo $file"
+		gdal_translate  -a_srs EPSG:32618  -stats -of PNG -scale -ot Byte -outsize $RES $RES $file $TN_FOLDER/${bn%.nc}.png
+		convert -transparent "#000000" $TN_FOLDER/${bn%.nc}.png $TN_FOLDER/${bn%.nc}.png
+	else
+		for i in $(seq 1 $nb)
+		do
+		echo "Escribiendo el thumbnail para el archivo $file banda $i"
+
+		gdal_translate  -a_srs EPSG:32618  -stats -of PNG -scale -ot Byte -b $i -outsize $RES $RES $file $TN_FOLDER/${bn%.nc}.$i.png
+		convert -transparent "#000000" $TN_FOLDER/${bn%.nc}.$i.png $TN_FOLDER/${bn%.nc}.$i.png
+		done
+	fi
 fi
-done
 done
