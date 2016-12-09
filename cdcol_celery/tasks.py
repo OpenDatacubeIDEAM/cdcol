@@ -8,8 +8,8 @@ from datacube.storage import netcdf_writer
 from datacube.model import Variable, CRS
 import os
 import re
-ALGORITHMS_FOLDER = os.path.expanduser('~')+"/algorithms"
-RESULTS_FOLDER = "/Results"
+ALGORITHMS_FOLDER = "/web_storage/algorithms"
+RESULTS_FOLDER = "/web_storage/results"
 nodata=-9999
 def saveNC(output,filename, history):
 

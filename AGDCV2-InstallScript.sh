@@ -88,6 +88,8 @@ sudo chown $USUARIO_CUBO:ingesters /dc_storage
 sudo chmod -R g+rwxs /dc_storage
 sudo chown $USUARIO_CUBO:ingesters /source_storage
 sudo chmod -R g+rwxs /source_storage
+sudo mkdir /web_storage
+sudo chown $USUARIO_CUBO /web_storage
 #Crear un usuario ingestor
 pass=$(perl -e 'print crypt($ARGV[0], "password")' "uniandes")
 sudo useradd  --no-create-home -G ingesters -p $pass ingestor --shell="/usr/sbin/nologin" --home /source_storage  -K UMASK=002
@@ -108,7 +110,18 @@ sudo rabbitmq-plugins enable rabbitmq_management
 sudo rabbitmqctl set_user_tags cdcol cdcol_tag administrator
 sudo service rabbitmq-server restart
 ip=`hostname -I | awk '{ print $1 }'`
-echo "iniciando conda en la ip $ip en el puerto 8082"
+echo "iniciando celery en la ip $ip en el puerto 8082"
+nohup celery -A cdcol_celery worker --loglevel=info &
 nohup celery -A cdcol_celery flower --port=8082 --address=$ip --persistent &
 
 echo "Para que funcione el sftp del usuario ingestor se necesita cambiar 'Subsystem sftp /usr/lib/openssh/sftp-server' por 'Subsystem sftp internal-sftp' en /etc/ssh/sshd_config"
+
+#Configuración de NFS
+sudo apt-get install nfs-kernel-server
+echo "¿Cuál es la ip del servidor web?"
+read $ipweb
+sudo sh -c 'echo "/dc_storage    $ipweb(ro,sync,no_subtree_check)">> /etc/exports'
+sudo sh -c 'echo "/web_storage    $ipweb(rw,sync,no_subtree_check)">> /etc/exports'
+
+sudo service nfs-kernel-server restart
+
