@@ -38,7 +38,7 @@ while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
    echo "Waiting while other process ends installs (dpkg/lock is locked)"
    sleep 1
 done
-sudo apt install -y openssh-server postgresql-9.5 postgresql-client-9.5 postgresql-contrib-9.5 libgdal1-dev libhdf5-serial-dev libnetcdf-dev hdf5-tools netcdf-bin gdal-bin pgadmin3 postgresql-doc-9.5 libhdf5-doc netcdf-doc libgdal-doc git wget htop rabbitmq-server imagemagick ffmpeg|| exit 1
+sudo apt install -y openssh-server postgresql-9.5 postgresql-client-9.5 postgresql-contrib-9.5 libgdal1-dev libhdf5-serial-dev libnetcdf-dev hdf5-tools netcdf-bin gdal-bin pgadmin3 postgresql-doc-9.5 libhdf5-doc netcdf-doc libgdal-doc git wget htop rabbitmq-server imagemagick ffmpeg nginx|| exit 1
 
 if ! hash "conda" > /dev/null; then
 	mkdir -p ~/instaladores && wget -c -P ~/instaladores $ANACONDA_URL
@@ -101,7 +101,7 @@ datacube product add ~/agdc-v2/docs/config_samples/dataset_types/ls8_scenes.yaml
 datacube product add ~/agdc-v2/docs/config_samples/dataset_types/modis_tiles.yaml
 
 #Celery Install
-conda install -c conda-forge celery=3.1.23 flower
+conda install -c conda-forge celery=3.1.23 flower 
 sudo rabbitmqctl add_user cdcol cdcol
 sudo rabbitmqctl add_vhost cdcol
 sudo rabbitmqctl set_user_tags cdcol cdcol_tag
@@ -125,3 +125,9 @@ sudo sh -c 'echo "/web_storage    $ipweb(rw,sync,no_subtree_check)">> /etc/expor
 
 sudo service nfs-kernel-server restart
 
+#Instalación de los pre-requisitos del servicio web
+conda install Django  simplejson pyyaml 
+conda install -c conda-forge djangorestframework
+
+echo "Recuerde configurar GUnicorn y Nginx para exponer el servicio,
+ cambiando el interprete para que sea el python de conda"
