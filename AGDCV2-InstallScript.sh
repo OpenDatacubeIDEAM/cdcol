@@ -126,7 +126,7 @@ sudo sh -c 'echo "/web_storage    $ipweb(rw,sync,no_subtree_check)">> /etc/expor
 sudo service nfs-kernel-server restart
 
 #Instalación de los pre-requisitos del servicio web
-conda install Django  simplejson pyyaml 
+conda install Django  simplejson pyyaml gunicorn 
 conda install -c conda-forge djangorestframework
 
 echo "Recuerde configurar GUnicorn y Nginx para exponer el servicio,

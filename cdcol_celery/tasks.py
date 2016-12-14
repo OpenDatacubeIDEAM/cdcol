@@ -46,6 +46,7 @@ def generic_task(execID,algorithm,version, output_expression,product, min_lat, m
     for tr in time_ranges:
         kwargs["xarr"+str(i)] = dc.load(product=product, longitude=(min_long, min_long+1.0), latitude=(min_lat, min_lat+1), time=tr)
         i+=1
+    dc.close()
     exec(open(ALGORITHMS_FOLDER+"/"+algorithm+"/"+algorithm+"_"+str(version)+".py").read(),kwargs)
     fns=[]
     folder = "{}/{}/".format(RESULTS_FOLDER,execID)
