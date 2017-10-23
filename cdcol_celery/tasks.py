@@ -8,6 +8,7 @@ from datacube.storage import netcdf_writer
 from datacube.model import Variable, CRS
 import os
 import re
+import xarray as xr
 ALGORITHMS_FOLDER = "/web_storage/algorithms"
 RESULTS_FOLDER = "/web_storage/results"
 nodata=-9999
@@ -46,6 +47,60 @@ def generic_task(execID,algorithm,version, output_expression,product, min_lat, m
     for tr in time_ranges:
         kwargs["xarr"+str(i)] = dc.load(product=product, longitude=(min_long, min_long+1.0), latitude=(min_lat, min_lat+1), time=tr)
         i+=1
+    dc.close()
+    exec(open(ALGORITHMS_FOLDER+"/"+algorithm+"/"+algorithm+"_"+str(version)+".py").read(),kwargs)
+    fns=[]
+    folder = "{}/{}/".format(RESULTS_FOLDER,execID)
+    if not os.path.exists(os.path.dirname(folder)):
+        try:
+            os.makedirs(os.path.dirname(folder))
+        except OSError as exc: # Guard against race condition
+            if exc.errno != errno.EEXIST:
+                raise
+    history = u'Creado con CDCOL con el algoritmo {} y  ver. {}'.format(algorithm,str(version))
+    if "output" in kwargs: #output debería ser un xarray
+        #Guardar a un archivo...
+        filename=folder+"{}_{}_{}_{}_{}_output.nc".format(algorithm,str(version),min_lat,min_long,re.sub('[^\w_.)(-]', '', str(time_ranges)))
+        output=  kwargs["output"]
+        saveNC(output,filename, history)
+        fns.append(filename)
+    if "outputs" in kwargs:
+        for xa in kwargs["outputs"]:
+            filename=folder+"{}_{}_{}_{}_{}_{}.nc".format(algorithm,str(version),min_lat,min_long,re.sub('[^\w_.)(-]', '', str(time_ranges)),xa)
+            saveNC(kwargs["outputs"][xa],filename, history)
+            fns.append(filename)
+    if "outputtxt" in kwargs:
+        filename=folder+"{}_{}_{}.txt".format(min_lat,min_long,re.sub('[^\w_.)(-]', '', str(time_ranges)))
+        with open(filename, "w") as text_file:
+            text_file.write(kwargs["outputtxt"])
+        fns.append(filename)
+    return fns;
+    
+@app.task
+def generic_task_mp(execID,algorithm,version, output_expression,products, min_lat, min_long, time_ranges, **kwargs):
+    """
+    Los primeros 8 parámetros deben ser dado por el ejecutor a partir de lo seleccionado por el usuario
+        execID = id de la ejecución
+        algorithm = nombre del algoritmo 
+        version = versión del algoritmo a ejecutar
+        output_expression = Expresión que indica cómo se va a generar el nombre del archivo de salida.
+        product = producto seleccionado por el usuario (sobre el que se va a realizar la consulta)
+        min_long = cordenada x de la esquina inferior izquierda del tile 
+        min_lat = cordenada y de la esquina inferior izquierda del tile
+        time_ranges = rangos de tiempo de las consultas (es un arreglo de tuplas, debe haber al menos una para realizar una consulta. (Obligatorio)
+        kwargs = KeyWord arguments que usará el algoritmo (cuando se ejecute los verá como variables globales)
+    """
+    dc = datacube.Datacube(app=execID)
+    for product in products:
+        i=0
+        for tr in time_ranges:
+            _data = dc.load(product=product, longitude=(min_long, min_long+1.0), latitude=(min_lat, min_lat+1), time=tr)
+            if "xarr"+str(i) in kwargs:
+                kwargs["xarr"+str(i)]=xr.concat([kwargs["xarr"+str(i)],_data.copy(deep=True)], 'time')
+            else:
+                kwargs["xarr"+str(i)]=_data
+        i+=1
+    del _data
     dc.close()
     exec(open(ALGORITHMS_FOLDER+"/"+algorithm+"/"+algorithm+"_"+str(version)+".py").read(),kwargs)
     fns=[]
