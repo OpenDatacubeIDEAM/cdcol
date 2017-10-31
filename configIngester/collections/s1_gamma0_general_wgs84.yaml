@@ -1,0 +1,72 @@
+source_type: s1_gamma0_scene
+output_type: S1_SAR_GAMMA0
+
+description: Sentinel-1A/B SAR Gamma0, processed to the CEOS ARD standard - Orbit updates, GRD border noise, thermal noise, radiometric calibration and terrain correction, orthorectification.
+
+location: '/dc_storage'
+file_path_template: 'S1_SAR_GAMMA0/S1_SAR_GAMMA0_4326_{tile_index[0]}_{tile_index[1]}_{start_time}.nc'
+global_attributes:
+  title: CEOS SEO Data Cube Sentinel-1A/B SAR Gamma0
+  summary: Sentinel-1A/B Synthetic Aperture Radar Gamma0 data prepared AMA using the SNAP Tool
+  history: This data represents a tile and reprojection of Sentinel-1 SAR granule data.
+  institution: IDEAM
+  instrument: SAR
+  cdm_data_type: Grid
+  keywords: AU/GA,ESA,SAR,EARTH SCIENCE
+  keywords_vocabulary: GCMD
+  platform: SENTINEL-1
+  processing_level: L2
+  product_version: '1.0.0'
+  product_suite: Sentinel-1
+  project: AGDC
+  publisher_email: Australian-Geoscience-Data-Cube@ga.gov.au
+  publisher_name: AGDC Programme Director
+  publisher_url: www.ga.gov.au
+  coverage_content_type: physicalMeasurement
+  license: https://creativecommons.org/licenses/by/4.0/
+  naming_authority: au.gov.ga
+  acknowledgment: Sentinel-1 data is provided by the European Space Agency on behalf of the European Commission via download.
+
+ingestion_bounds: 
+  left: -82
+  bottom: -5
+  right: -66
+  top: 14
+
+storage:
+  driver: NetCDF CF
+
+  crs: EPSG:4326
+  tile_size:
+          longitude: 0.99992800122
+          latitude: 0.99996382643
+  resolution:
+          longitude: 0.0000809986230234086
+          latitude: -0.00008139051167501673
+  chunking:
+      longitude: 500
+      latitude: 500
+      time: 1
+  dimension_order: ['time', 'latitude', 'longitude']
+
+measurements:
+    - name: vh
+      dtype: float32
+      nodata: 0
+      units: 'dB'
+      resampling_method: nearest
+      src_varname: 'vh'
+      zlib: True
+      attrs:
+          long_name: "Terrain Corrected RADAR Gamma0 VH (L-Band)"
+          alias: "VH"
+    - name: vv
+      dtype: float32
+      nodata: 0
+      units: 'dB'
+      resampling_method: nearest
+      src_varname: 'vv'
+      zlib: True
+      attrs:
+          long_name: "Terrain Corrected RADAR Gamma0 VV (L-Band)"
+          alias: "VV"
