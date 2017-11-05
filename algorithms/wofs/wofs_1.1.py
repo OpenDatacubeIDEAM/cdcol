@@ -185,25 +185,26 @@ def wofs_classify(dataset_in, clean_mask=None, no_data=-9999, enforce_float64=Fa
     dtype = blue.values.dtype # This assumes all dataset bands will have
                               # the same dtype (should be a reasonable
                               # assumption)
-    print "El tipo de datos fuente es "+dtype
-    if enforce_float64:
-        if dtype != 'float64':
-            blue.values = blue.values.astype('float64')
-            green.values = green.values.astype('float64')
-            red.values = red.values.astype('float64')
-            nir.values = nir.values.astype('float64')
-            swir1.values = swir1.values.astype('float64')
-            swir2.values = swir2.values.astype('float64')
-    else:
-        if dtype == 'float64':
-            pass
-        elif dtype != 'float32':
-            blue.values = blue.values.astype('float32')
-            green.values = green.values.astype('float32')
-            red.values = red.values.astype('float32')
-            nir.values = nir.values.astype('float32')
-            swir1.values = swir1.values.astype('float32')
-            swir2.values = swir2.values.astype('float32')
+    print "El tipo de datos fuente es "+str(dtype)
+    #Esto no es necesario si se usa true_divide, el no hacerlo ahorra memoria.
+    # if enforce_float64:
+        # if dtype != 'float64':
+            # blue.values = blue.values.astype('float64')
+            # green.values = green.values.astype('float64')
+            # red.values = red.values.astype('float64')
+            # nir.values = nir.values.astype('float64')
+            # swir1.values = swir1.values.astype('float64')
+            # swir2.values = swir2.values.astype('float64')
+    # else:
+        # if dtype == 'float64':
+            # pass
+        # elif dtype != 'float32':
+            # blue.values = blue.values.astype('float32')
+            # green.values = green.values.astype('float32')
+            # red.values = red.values.astype('float32')
+            # nir.values = nir.values.astype('float32')
+            # swir1.values = swir1.values.astype('float32')
+            # swir2.values = swir2.values.astype('float32')
     
     shape = blue.values.shape
     classified = _run_regression(blue.values, green.values, red.values, 
