@@ -219,7 +219,7 @@ def wofs_classify(dataset_in, clean_mask=None, no_data=-9999, enforce_float64=Fa
         latitude = dataset_in.latitude 
         longitude = dataset_in.longitude 
     
-        data_array = xr.DataArray(classified_clean,
+        data_array = xr.DataArray(classified_clean.astype(np.int8),
                               coords=[time, latitude, longitude],
                               dims=['time', 'latitude', 'longitude'])
     
@@ -348,12 +348,13 @@ def perform_timeseries_analysis(dataset_in, no_data=-9999):
                              coords={'y': y,
                                      'x': x})
     return dataset_out
-
+crs_org=xarr0.crs
 output = wofs_classify(xarr0)
+del xarr0
 print "clasifica"
 time_series = perform_timeseries_analysis(output)
 print "Serie de tiempo"
-output.attrs["crs"]=xarr0.crs
+output.attrs["crs"]=crs_org
 outputs={}
 outputs["time_series"]=time_series
-outputs["time_series"].attrs["crs"]=xarr0.crs
+outputs["time_series"].attrs["crs"]=crs_org
