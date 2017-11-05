@@ -212,7 +212,7 @@ def wofs_classify(dataset_in, clean_mask=None, no_data=-9999, enforce_float64=Fa
 
     classified_clean = np.full(classified.shape, no_data)
     classified_clean[clean_mask] = classified[clean_mask] # Contains data for clear pixels
-    
+    del classified
     # Create xarray of data
     time = dataset_in.time
     if hasattr(dataset_in,'latitude'):
@@ -307,6 +307,7 @@ def perform_timeseries_analysis(dataset_in, no_data=-9999):
     data_dup.values[data.values == no_data] = 0
 
     processed_data_sum = data_dup.sum('time')
+    del data_dup
     # Masking no data values then converting boolean to int for easy summation
     clean_data_raw = np.reshape(np.in1d(data.values.reshape(-1), [no_data], invert=True),
                                         data.values.shape).astype(int)
@@ -349,7 +350,9 @@ def perform_timeseries_analysis(dataset_in, no_data=-9999):
     return dataset_out
 
 output = wofs_classify(xarr0)
+print "clasifica"
 time_series = perform_timeseries_analysis(output)
+print "Serie de tiempo"
 output.attrs["crs"]=xarr0.crs
 outputs={}
 outputs["time_series"]=time_series
