@@ -38,11 +38,17 @@ storage:
 
   crs: EPSG:4326
   tile_size:
-          longitude: 0.99992800122
-          latitude: 0.99996382643
+  #11111 pixeles longitud
+  #11057 pixeles latitud (aproximadamente un grado de lado)
+          longitude: 0.99997300045 
+          latitude: 0.99992765287 
   resolution:
-          longitude: 0.0000809986230234086
-          latitude: -0.00008139051167501673
+  #10m de resolución, 
+  #calculando el tamaño en metros de 1 grado para la latitud 3.5, usando http://msi.nga.mil/MSISiteContent/StaticFiles/Calculators/degree.html
+  #longitude: 10/111113
+  #latitude: -10/110578 
+          longitude: 0.00008999847002600956 
+          latitude: -0.0000904339018611297
   chunking:
       longitude: 500
       latitude: 500
