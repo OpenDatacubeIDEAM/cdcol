@@ -57,3 +57,26 @@ if model is None:
     raise "Debería haber un modelo en la carpeta "+modelos
     
 classifier=joblib.load(os.path.join(modelos, model))
+result=classifier.predict(nmed.T)
+result=result.reshape(sp)
+
+
+# In[ ]:
+
+
+
+
+# In[24]:
+
+coordenadas = []
+dimensiones =[]
+xcords = {}
+for coordenada in xarr0.coords:
+    if(coordenada != 'time'):
+        coordenadas.append( ( coordenada, xarr0.coords[coordenada]) )
+        dimensiones.append(coordenada)
+        xcords[coordenada] = xarr0.coords[coordenada]
+valores = {"classified": xr.DataArray(result, dims=dimensiones, coords=coordenadas)}
+output = xr.Dataset(valores, attrs={'crs': xarr0.crs})
+for coordenada in output.coords:
+    output.coords[coordenada].attrs["units"] = xarr0.coords[coordenada].units
