@@ -470,4 +470,4 @@ params = {'QA_BITPACKED': False,
 'QA_SHADOW': 2,
 'QA_SNOW': 3,
 'QA_CLOUD': 4}
-output = dc_ccd.process_xarray(xarr0, params = params)
+output = process_xarray(xarr0, params = params)
