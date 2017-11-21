@@ -470,4 +470,8 @@ params = {'QA_BITPACKED': False,
 'QA_SHADOW': 2,
 'QA_SNOW': 3,
 'QA_CLOUD': 4}
-output = process_xarray(xarr0, params = params)
+xarr0["pixel_qa"]=xarr0.cf_mask
+var = process_xarray(xarr0, params = params)
+output= xarray.Dataset({'change_volume':var},attrs={'crs':xarr0.crs})
+for x in output.coords:
+    output.coords[x].attrs["units"]=xarr0.coords[x].units
