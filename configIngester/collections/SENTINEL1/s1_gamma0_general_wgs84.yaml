@@ -38,14 +38,14 @@ storage:
 
   crs: EPSG:4326
   tile_size:
-          longitude: 0.99992800122
-          latitude: 0.99996382643
+          latitude: 0.949557
+          longitude:  0.9449825
   resolution:
-          longitude: 0.0000809986230234086
-          latitude: -0.00008139051167501673
+          latitude: -0.000271302
+          longitude: 0.000269995
   chunking:
-      longitude: 500
-      latitude: 500
+      longitude: 200
+      latitude: 200
       time: 1
   dimension_order: ['time', 'latitude', 'longitude']
 
