@@ -24,17 +24,22 @@ global_attributes:
   license: https://creativecommons.org/licenses/by/4.0/
   naming_authority: gov.usgs
   acknowledgment: Landsat data is provided by the United States Geological Survey (USGS).
-
+  
+ingestion_bounds: # Specified in Storage CRS coordinates. Will expand to tile boundaries.
+  left: -82
+  bottom: -5
+  right: -66
+  top: 14
 storage:
   driver: NetCDF CF
 
   crs: EPSG:4326
   tile_size:
-          longitude: 0.949557
-          latitude:  0.9449825
+          latitude: 0.949557
+          longitude:  0.9449825
   resolution:
-          longitude: 0.000269995
           latitude: -0.000271302
+          longitude: 0.000269995
   chunking:
       longitude: 200
       latitude: 200
