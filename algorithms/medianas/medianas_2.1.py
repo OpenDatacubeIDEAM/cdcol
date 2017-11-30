@@ -4,7 +4,13 @@ print "Excecuting medianas v2"
 nbar = xarr0
 nodata=-9999
 medians={}
-cloud_mask=np.where(np.logical_or(nbar["pixel_qa"].values==66, nbar["pixel_qa"].values==68), True, False)
+validValues=set()
+if product=="LS7_ETM_LEDAPS":
+    validValues=set(66,68,130,132)
+elif product == "LS8_OLI_LASRC":
+    validValues=set(322, 386, 834, 898, 1346, 324, 388, 836, 900, 1348)
+
+cloud_mask=np.where(nbar["pixel_qa"].values in validValues, True, False)
 for band in bands:
     datos=np.where(np.logical_and(nbar.data_vars[band]!=nodata,cloud_mask),nbar.data_vars[band], np.nan)
     allNan=~np.isnan(datos)
