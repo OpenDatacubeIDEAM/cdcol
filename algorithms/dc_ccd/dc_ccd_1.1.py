@@ -463,15 +463,8 @@ def plot_pixel(ds, bands=None):
     for band in bands:
         _plot_band(results=ds.attrs['ccd_results'], original_pixel=ds, band=band)
 
-params = {'QA_BITPACKED': False,
-'QA_FILL': 255,
-'QA_CLEAR': 0,
-'QA_WATER': 1,
-'QA_SHADOW': 2,
-'QA_SNOW': 3,
-'QA_CLOUD': 4}
-xarr0["pixel_qa"]=xarr0.cf_mask
-var = process_xarray(xarr0, params = params)
+
+var = process_xarray(xarr0)
 output= xarray.Dataset({'change_volume':var},attrs={'crs':xarr0.crs})
 for x in output.coords:
     output.coords[x].attrs["units"]=xarr0.coords[x].units

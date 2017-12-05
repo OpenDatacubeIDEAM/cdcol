@@ -33,11 +33,6 @@ del datos
 nbar = xarr1
 nodata=-9999
 medians2={}
-cvalidValues=set()
-if product=="LS7_ETM_LEDAPS":
-    validValues=[66,68,130,132]
-elif product == "LS8_OLI_LASRC":
-    validValues=[322, 386, 834, 898, 1346, 324, 388, 836, 900, 1348]
 
 cloud_mask=isin(nbar["pixel_qa"].values, validValues)
 for band in bands:

@@ -261,9 +261,13 @@ def create_cfmask_clean_mask(cfmask):
     #   4 - cloud           #
     #   255 - fill          #
     #########################
+	validValues=set()
+	if product=="LS7_ETM_LEDAPS":
+		validValues=[66,68,130,132]
+	elif product == "LS8_OLI_LASRC":
+		validValues=[322, 386, 834, 898, 1346, 324, 388, 836, 900, 1348]
 
-    clean_mask = np.reshape(np.in1d(cfmask.values.reshape(-1), [2, 3, 4, 255], invert=True),
-                            cfmask.values.shape)
+    clean_mask = np.reshape(np.in1d(cfmask.values.reshape(-1), validValues), cfmask.values.shape)
     return clean_mask
 
 def get_spatial_ref(crs):
