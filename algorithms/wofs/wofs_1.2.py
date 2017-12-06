@@ -241,6 +241,14 @@ def wofs_classify(dataset_in, clean_mask=None, no_data=-9999, enforce_float64=Fa
                                      
     return dataset_out
 def create_cfmask_clean_mask(cfmask):
+    validValues=set()
+	if product=="LS7_ETM_LEDAPS":
+		validValues=[66,68,130,132]
+	elif product == "LS8_OLI_LASRC":
+		validValues=[322, 386, 834, 898, 1346, 324, 388, 836, 900, 1348]
+
+    clean_mask = np.reshape(np.in1d(cfmask.values.reshape(-1), validValues), cfmask.values.shape)
+    return clean_mask
     """
     Description:
       Create a clean mask for clear land/water pixels,
@@ -261,14 +269,7 @@ def create_cfmask_clean_mask(cfmask):
     #   4 - cloud           #
     #   255 - fill          #
     #########################
-	validValues=set()
-	if product=="LS7_ETM_LEDAPS":
-		validValues=[66,68,130,132]
-	elif product == "LS8_OLI_LASRC":
-		validValues=[322, 386, 834, 898, 1346, 324, 388, 836, 900, 1348]
-
-    clean_mask = np.reshape(np.in1d(cfmask.values.reshape(-1), validValues), cfmask.values.shape)
-    return clean_mask
+    
 
 def get_spatial_ref(crs):
     """
