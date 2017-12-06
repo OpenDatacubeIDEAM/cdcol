@@ -178,7 +178,7 @@ def wofs_classify(dataset_in, clean_mask=None, no_data=-9999, enforce_float64=Fa
     
     # Create a clean mask from cfmask if the user does not provide one
     if not clean_mask:
-        cfmask = dataset_in.cf_mask
+        cfmask = dataset_in.pixel_qa
         clean_mask = create_cfmask_clean_mask(cfmask)
     
     # Enforce float calculations - float64 if user specified, otherwise float32 will do
