@@ -69,7 +69,7 @@ bands = ['vh', 'vv']
 
 
 def band_name(path):
-    name = path.stem
+    name = path.stem.split('.')[0]
     # position = name.find('_')
     if 'VH' in str(path):
         layername = 'vh'
@@ -82,7 +82,7 @@ def prep_dataset(path):
     # input: path = .dim filename
 
     # Read in the XML header
-    xml_path = path.joinpath(path.stem + '.dim')
+    xml_path = path.joinpath(path.stem.split('.')[0] + '.dim')
     xml = ElementTree.parse(
         str(xml_path)).getroot().find("Dataset_Sources/MDElem[@name='metadata']/MDElem[@name='Abstracted_Metadata']")
     scene_name = xml.find("MDATTR[@name='PRODUCT']").text
