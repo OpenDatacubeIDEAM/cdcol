@@ -39,7 +39,7 @@ from sklearn.externals import joblib
 #Preprocesar: 
 nmed=None
 nan_mask=None
-for band in medians1:
+for band in bands:
     b=medians1[band].ravel()
     if nan_mask is None: 
         nan_mask=np.isnan(b)
