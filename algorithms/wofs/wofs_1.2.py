@@ -353,7 +353,7 @@ def perform_timeseries_analysis(dataset_in, no_data=-9999):
                                      'x': x})
     return dataset_out
 crs_org=xarr0.crs
-output = wofs_classify(xarr0)
+output = wofs_classify(xarr0).astype(np.float32)
 del xarr0
 print "clasifica"
 time_series = perform_timeseries_analysis(output)
