@@ -65,7 +65,7 @@ for x in nbar.coords:
         ncoords.append( ( x, nbar.coords[x]) )
         xdims.append(x)
         xcords[x]=nbar.coords[x]
-variables ={"bosque_nobosque": xr.DataArray(bosque_nobosque, dims=xdims,coords=ncoords)}
+variables ={"bosque_nobosque": xr.DataArray(bosque_nobosque.astype(np.int8), dims=xdims,coords=ncoords)}
 output=xr.Dataset(variables, attrs={'crs':nbar.crs})
 for x in output.coords:
     output.coords[x].attrs["units"]=nbar.coords[x].units
