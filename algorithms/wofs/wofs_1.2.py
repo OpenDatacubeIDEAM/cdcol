@@ -219,7 +219,7 @@ def wofs_classify(dataset_in, clean_mask=None, no_data=-9999, enforce_float64=Fa
         latitude = dataset_in.latitude 
         longitude = dataset_in.longitude 
     
-        data_array = xr.DataArray(classified_clean.astype(np.int8),
+        data_array = xr.DataArray(classified_clean.astype(np.int16),
                               coords=[time, latitude, longitude],
                               dims=['time', 'latitude', 'longitude'])
     
@@ -230,7 +230,7 @@ def wofs_classify(dataset_in, clean_mask=None, no_data=-9999, enforce_float64=Fa
     else:
         y = dataset_in.y 
         x = dataset_in.x
-        data_array = xr.DataArray(classified_clean.astype(np.int8),
+        data_array = xr.DataArray(classified_clean.astype(np.int16),
                               coords=[time, y, x],
                               dims=['time', 'y', 'x'])
     
