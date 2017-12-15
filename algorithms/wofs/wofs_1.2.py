@@ -340,13 +340,13 @@ def perform_timeseries_analysis(dataset_in, no_data=-9999):
 
     processed_data_normalized = np.true_divide(processed_data_sum,clean_data_sum)
     if hasattr(data, "latitude"):
-        dataset_out = xr.Dataset(collections.OrderedDict([('normalized_data', (['latitude', 'longitude'], processed_data_normalized)),
-                                                      ('total_data', (['latitude', 'longitude'], processed_data_sum)),
-                                                      ('total_clean', (['latitude', 'longitude'], clean_data_sum))]),
+        dataset_out = xr.Dataset(collections.OrderedDict([('normalized_data', (['latitude', 'longitude'], processed_data_normalized.astype(np.float32))),
+                                                      ('total_data', (['latitude', 'longitude'], processed_data_sum.astype(np.int16))),
+                                                      ('total_clean', (['latitude', 'longitude'], clean_data_sum.astype(np.int16)))]),
                              coords={'latitude': latitude,
                                      'longitude': longitude})
     else:
-        dataset_out = xr.Dataset(collections.OrderedDict([('normalized_data', (['y', 'x'], processed_data_normalized)),
+        dataset_out = xr.Dataset(collections.OrderedDict([('normalized_data', (['y', 'x'], processed_data_normalized.astype(np.float32))),
                                                       ('total_data', (['y', 'x'], processed_data_sum.astype(np.int16))),
                                                       ('total_clean', (['y', 'x'], clean_data_sum.astype(np.int16)))]),
                              coords={'y': y,
