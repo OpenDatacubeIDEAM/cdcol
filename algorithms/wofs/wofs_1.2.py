@@ -347,8 +347,8 @@ def perform_timeseries_analysis(dataset_in, no_data=-9999):
                                      'longitude': longitude})
     else:
         dataset_out = xr.Dataset(collections.OrderedDict([('normalized_data', (['y', 'x'], processed_data_normalized)),
-                                                      ('total_data', (['y', 'x'], processed_data_sum)),
-                                                      ('total_clean', (['y', 'x'], clean_data_sum))]),
+                                                      ('total_data', (['y', 'x'], processed_data_sum.astype(np.int16))),
+                                                      ('total_clean', (['y', 'x'], clean_data_sum.astype(np.int16)))]),
                              coords={'y': y,
                                      'x': x})
     return dataset_out
