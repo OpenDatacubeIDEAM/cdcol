@@ -132,39 +132,3 @@ measurements:
       attrs:
           long_name: "Surface Reflectance Cloud Quality Attributes Bit Index"
           alias: [sr_cloud_qa]
-    - name: 'solar_azimuth'
-      dtype: int16
-      nodata: -32768
-      resampling_method: nearest
-      src_varname: 'solar_azimuth_band4'
-      zlib: True
-      attrs:
-          long_name: "Solar Azimuth Angle for Band 4"
-          alias: [solar_azimuth_band4]
-    - name: 'solar_zenith'
-      dtype: int16
-      nodata: -32768
-      resampling_method: nearest
-      src_varname: 'solar_zenith_band4'
-      zlib: True
-      attrs:
-          long_name: "Solar Zenith Angle for Band 4"
-          alias: [solar_zenith_band4]
-    - name: 'sensor_azimuth'
-      dtype: int16
-      nodata: -32768
-      resampling_method: nearest
-      src_varname: 'sensor_azimuth_band4'
-      zlib: True
-      attrs:
-          long_name: "Sensor Azimuth Angle for Band 4"
-          alias: [sensor_azimuth_band4]
-    - name: 'sensor_zenith'
-      dtype: int16
-      nodata: -32768
-      resampling_method: nearest
-      src_varname: 'sensor_zenith_band4'
-      zlib: True
-      attrs:
-          long_name: "Sensor Zenith Angle for Band 4"
-          alias: [sensor_zenith_band4]
