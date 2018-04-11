@@ -8,9 +8,9 @@ app = Celery('cdcol_celery',
              backend='rpc://',
              include=['cdcol_celery.tasks'])
 app.conf.CELERYD_PREFETCH_MULTIPLIER = 1
-app.conf.CELERYD_MAX_TASKS_PER_CHILD = 3
+app.conf.CELERYD_MAX_TASKS_PER_CHILD = 1
 
 ##Si se desea limitar el número de workers, se puede usar CELERYD_CONCURRENCY.
 ##Debe ser menor al número de cores disponibles. 
 ##(por defecto toma el número de cores)
-#app.conf.CELERYD_CONCURRENCY = 1 #Por ejemplo, en este caso quiero sólo 1 worker al tiempo, para el ambiente de pruebas. 
+app.conf.CELERYD_CONCURRENCY = 3 #Por ejemplo, en este caso quiero sólo 3 workers. 
