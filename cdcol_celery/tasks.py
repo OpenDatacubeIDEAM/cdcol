@@ -42,25 +42,27 @@ def generic_task(execID,algorithm,version, output_expression,product, min_lat, m
         time_ranges = rangos de tiempo de las consultas (es un arreglo de tuplas, debe haber al menos una para realizar una consulta. (Obligatorio)
         kwargs = KeyWord arguments que usará el algoritmo (cuando se ejecute los verá como variables globales)
     """
+    folder = "{}/{}/".format(RESULTS_FOLDER, execID)
+    if not os.path.exists(os.path.dirname(folder)):
+        try:
+            os.makedirs(os.path.dirname(folder))
+        except OSError as exc:  # Guard against race condition
+            if exc.errno != errno.EEXIST:
+                raise
     dc = datacube.Datacube(app=execID)
     i=0
     for tr in time_ranges:
         xanm="xarr"+str(i)
         kwargs[xanm] = dc.load(product=product, longitude=(min_long, min_long+1.0), latitude=(min_lat, min_lat+1), time=tr)
         i+=1
-        if len(kwargs[xanm].data_vars) == 0: 
+        if len(kwargs[xanm].data_vars) == 0:
+            open(folder+"{}_{}_no_data.lock".format(min_lat, min_long), "w+")
             return []
     dc.close()
     kwargs["product"]=product
     exec(open(ALGORITHMS_FOLDER+"/"+algorithm+"/"+algorithm+"_"+str(version)+".py").read(),kwargs)
     fns=[]
-    folder = "{}/{}/".format(RESULTS_FOLDER,execID)
-    if not os.path.exists(os.path.dirname(folder)):
-        try:
-            os.makedirs(os.path.dirname(folder))
-        except OSError as exc: # Guard against race condition
-            if exc.errno != errno.EEXIST:
-                raise
+
     history = u'Creado con CDCOL con el algoritmo {} y  ver. {}'.format(algorithm,str(version))
     if "output" in kwargs: #output debería ser un xarray
         #Guardar a un archivo...
