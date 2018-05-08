@@ -56,7 +56,7 @@ def generic_task(execID,algorithm,version, output_expression,product, min_lat, m
         kwargs[xanm] = dc.load(product=product, longitude=(min_long, min_long+1.0), latitude=(min_lat, min_lat+1), time=tr)
         i+=1
         if len(kwargs[xanm].data_vars) == 0:
-            open(folder+"{}_{}_no_data.lock".format(min_lat, min_long), "w+")
+            open(folder+"{}_{}_no_data.lock".format(min_lat, min_long), "w+").close()
             return []
     dc.close()
     kwargs["product"]=product
