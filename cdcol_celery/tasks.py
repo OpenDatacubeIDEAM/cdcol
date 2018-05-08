@@ -1,5 +1,8 @@
 # coding=utf8
 from __future__ import absolute_import
+
+import errno
+
 from cdcol_celery.celery import app
 import time
 import datacube
