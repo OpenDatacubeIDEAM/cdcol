@@ -20,7 +20,7 @@ validValues=set()
 #Dependiendo del satellite, se definen unos valores distintos para la mascara
 #Estos valores se definen en la página de LandSat: https://landsat.usgs.gov/landsat-surface-reflectance-quality-assessment
 #Son valores validos porque representan agua (water) o un "pixel claro" (clear)
-if product=="LS7_ETM_LEDAPS":
+if product=="LS7_ETM_LEDAPS" OR product=="LS5_TM_LEDAPS":
     validValues=[66,68,130,132]
 elif product == "LS8_OLI_LASRC":
     validValues=[322, 386, 834, 898, 1346, 324, 388, 836, 900, 1348]
