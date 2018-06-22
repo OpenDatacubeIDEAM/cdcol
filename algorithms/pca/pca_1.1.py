@@ -14,7 +14,7 @@ nbar = xarr0
 nodata=-9999
 medians1={}
 validValues=set()
-if product=="LS7_ETM_LEDAPS":
+if product=="LS7_ETM_LEDAPS" OR product=="LS5_TM_LEDAPS":
     validValues=[66,68,130,132]
 elif product == "LS8_OLI_LASRC":
     validValues=[322, 386, 834, 898, 1346, 324, 388, 836, 900, 1348]
