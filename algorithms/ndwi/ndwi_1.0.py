@@ -32,7 +32,7 @@ period_green = medians["green"]
 period_nir = medians["nir"]
 del medians
 mask_nan=np.logical_or(np.isnan(period_green), np.isnan(period_nir))
-period_ndwi = np.true_divide( np.subtract(period_nir,period_green) , np.add(period_nir,period_green) )
+period_ndwi = np.true_divide( np.subtract(period_green,period_nir) , np.add(period_green,period_nir) )
 period_ndwi[mask_nan]=np.nan
 #Hace un clip para evitar valores extremos. 
 period_ndwi[period_ndwi>1]=np.nan
