@@ -35,8 +35,8 @@ mask_nan=np.logical_or(np.isnan(period_red), np.isnan(period_nir))
 period_nvdi = np.true_divide( np.subtract(period_nir,period_red) , np.add(period_nir,period_red) )
 period_nvdi[mask_nan]=np.nan
 #Hace un clip para evitar valores extremos. 
-period_nvdi[period_nvdi>1]=1.1
-period_nvdi[period_nvdi<-1]=-1.1
+period_nvdi[period_nvdi>1]=np.nan
+period_nvdi[period_nvdi<-1]=np.nan
 import xarray as xr
 ncoords=[]
 xdims =[]
