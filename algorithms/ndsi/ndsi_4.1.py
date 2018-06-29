@@ -31,11 +31,11 @@ period_sw1 = medians["swir1"]
 period_g = medians["green"]
 del medians
 mask_nan=np.logical_or(np.isnan(period_sw1), np.isnan(period_g))
-period_ndsi = np.true_divide( np.subtract(period_sw1,period_g) , np.add(period_sw1,period_g) )
+period_ndsi = np.true_divide( np.subtract(period_g,period_sw1) , np.add(period_g,period_sw1) )
 period_ndsi[mask_nan]=np.nan
 #Hace un clip para evitar valores extremos. 
-period_ndsi[period_ndsi>1]=1.1
-period_ndsi[period_ndsi<-1]=-1.1
+period_ndsi[period_ndsi>1]=np.nan
+period_ndsi[period_ndsi<-1]=np.nan
 import xarray as xr
 ncoords=[]
 xdims =[]
