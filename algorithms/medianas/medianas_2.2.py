@@ -31,18 +31,17 @@ cloud_mask=isin(nbar["pixel_qa"].values, validValues)
 for band in bands:
     # np.where es la funcion where de la libreria numpy que retorna un arreglo o un set de arreglos con datos que cumplen con la condicion dada por parametro
     # 
-    datos=np.where(np.logical_and(nbar.data_vars[band]!=nodata,cloud_mask),nbar.data_vars[band], np.nan)
-    #np.isnan verifica que valores no son numero o no estan definidos. En este caso, se usa ~ para invertir los valores y saber que valores de datos si estan definidos
-    allNan=~np.isnan(datos)
-    if normalized:
-        #Calcula la mediana arimetica sobre el arreglo de datos  ,sobre el eje  , ignorando los valores NaN
+    datos=xarr0[band].values
+    allNan=~np.isnan(datos) #Una mascara que indica qué datos son o no nan. 
+    if normalized: #Normalizar, si es necesario.
+        #Para cada momento en el tiempo obtener el promedio y la desviación estándar de los valores de reflectancia
         m=np.nanmean(datos.reshape((datos.shape[0],-1)), axis=1)
-        #Calcula la desviacion estandar sobre el arreglo de datos  , sobre el eje , ignorando los valores NaN
         st=np.nanstd(datos.reshape((datos.shape[0],-1)), axis=1)
-        datos=np.true_divide((datos-m[:,np.newaxis,np.newaxis]), st[:,np.newaxis,np.newaxis])*np.nanmean(st)+np.nanmean(m)
-    #Calcula la mediana aritmetica 
-    medians[band]=np.nanmedian(datos,0)
-    medians[band][np.sum(allNan,0)<minValid]=np.nan
+        # usar ((x-x̄)/st) para llevar la distribución a media 0 y desviación estándar 1, 
+        # y luego hacer un cambio de espacio para la nueva desviación y media. 
+        datos=np.true_divide((datos-m[:,np.newaxis,np.newaxis]), st[:,np.newaxis,np.newaxis]) #*np.nanmean(st)+np.nanmean(m)
+    #Calcular la mediana en la dimensión de tiempo 
+    medians[band]=np.nanmedian(datos,0) 
 #Elimina la variable datos y la asociacion que tiene en el algoritmo
 del datos
 
