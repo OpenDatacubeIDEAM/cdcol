@@ -1,0 +1,13 @@
+1. Descomprimir la escena o archivo a ingestar
+2. correr el script de generación de metadatos de la unidad de almacenamiento sobre la carpeta donde se descomprimió la escena
+3. Indexar las escenas
+4. Ingestar las escenas usando el archivo de configuración general de ingesta (.yaml)
+
+Ejemplo 
+
+1. tar -xvzf /home/cubo/dc_storage/LC080040572013081401T1-SC20171101143948.tar.gz
+2. python /dc_storage/LS8_OLI_LASRC/mgen_script.py /home/cubo/source_storage/LC080040572013081401T1-SC20171101143948/
+3. datacube dataset add -a /home/cubo/source_storage/LC080040572013081401T1-SC20171101143948/
+4. datacube ingest -c /dc_storage/LS8_OLI_LASRC/ingest_file.yml
+
+Nota: Este ejemplo está con rutas absolutas pero puede correr normalmente
