@@ -19,7 +19,7 @@ def isin(element, test_elements, assume_unique=False, invert=False):
 nbar = xarr0
 
 
-bands=np.asarray(nbar.data_vars)
+
 nodata=-9999
 
 validValues=set()
