@@ -41,7 +41,7 @@ else:
         validValues=[322, 386, 834, 898, 1346, 324, 388, 836, 900, 1348]
 
     cloud_mask=isin(nbar["pixel_qa"].values, validValues)
-    for band in bands[1:]:
+    for band in bands:
         datos=np.where(np.logical_and(nbar.data_vars[band]!=nodata,cloud_mask),nbar.data_vars[band], np.nan)
         allNan=~np.isnan(datos)
         if normalized:
@@ -77,7 +77,7 @@ else:
         validValues=[322, 386, 834, 898, 1346, 324, 388, 836, 900, 1348]
 
     cloud_mask=isin(nbar["pixel_qa"].values, validValues)
-    for band in bands[1:]:
+    for band in bands:
         datos=np.where(np.logical_and(nbar.data_vars[band]!=nodata,cloud_mask),nbar.data_vars[band], np.nan)
         allNan=~np.isnan(datos)
         if normalized:
