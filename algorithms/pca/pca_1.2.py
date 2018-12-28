@@ -25,7 +25,7 @@ nodata=-9999
 validValues=set()
 if product=='LS7_ETM_LEDAPS_MOSAIC':
     medians1={}
-    for band in bands[1:]:
+    for band in bands:
         datos = nbar.data_vars[band]
         allNan = ~np.isnan(datos)
         medians1[band] = datos
@@ -60,7 +60,7 @@ medians2={}
 
 if product=='LS7_ETM_LEDAPS_MOSAIC':
     medians2={}
-    for band in bands[1:]:
+    for band in bands:
         datos =nbar.data_vars[band]
         allNan = ~np.isnan(datos)
         medians2[band] = datos
