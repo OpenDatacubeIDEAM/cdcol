@@ -14,12 +14,7 @@ def isin(element, test_elements, assume_unique=False, invert=False):
 
 
 
-
-
 nbar = xarr0
-
-
-
 nodata=-9999
 
 validValues=set()
