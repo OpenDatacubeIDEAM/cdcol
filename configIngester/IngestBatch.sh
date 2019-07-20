@@ -2,9 +2,13 @@
 
 sudo renice -10 $$
 
+# Script base directory
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+
 baseIngestPath="${1}" 
 ingestConfigFile="${2}"
-matadataPrepareScript="${3:-./metadata_prepare_scripts/agdc-v2/usgslsprepare.py}"
+matadataPrepareScript="${3:-$DIR/metadata_prepare_scripts/agdc-v2/usgslsprepare.py}"
 
 echo "-------------------------"
 echo "This script was designed for ingestion in LS5, LS7 and LS8."
@@ -12,9 +16,9 @@ echo "In case of LS7 removes the toa file comming in LS7 image zip\
  files that must not be ingested in the Colombian datacube."
 
 echo "=> Date: $(date)"
-echo "=> Data to ingest:	 				$baseIngestPath"
-echo "=> Ingest Config File (.yml): 		$ingestConfigFile"
-echo "=> Metadata generation Script (.py): 	$matadataPrepareScript"
+echo "=> Data to ingest:                    $baseIngestPath"
+echo "=> Ingest Config File (.yml):         $ingestConfigFile"
+echo "=> Metadata generation Script (.py):  $matadataPrepareScript"
 
 read -p "Press [Enter] key to continue..."
 
