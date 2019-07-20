@@ -37,7 +37,7 @@ do
 	folder="/source_storage/tmp/${archivo%%-*}"
 	 
 	echo "=> Unzip $archivo into $folder"
-	mkdir -p $folder tar -xzf $archivo -C $folder
+	mkdir -p $folder && tar -xzf $archivo -C $folder
 
 	echo "=> Remove toa files from $folder"
 	rm -v -f $folder/*toa*
