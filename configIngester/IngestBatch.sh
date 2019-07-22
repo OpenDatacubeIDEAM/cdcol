@@ -1,17 +1,16 @@
 #!/bin/bash
 
-if [ -d $1 ] && [ -d $2 ] && [ -e $3 ]
+if [ -d "$1" ] && [ -e "$2" ] && [ -e "$3" ]
 then
+
+	baseIngestPath="${1}" 
+	ingestConfigFile="${2}"
+	matadataPrepareScript="${3}"
 
 	sudo renice -10 $$
 
 	# Script base directory
 	DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-
-
-	baseIngestPath="${1}" 
-	ingestConfigFile="${2}ingest_file.yml"
-	matadataPrepareScript="${3}mgen_script.yml"
 
 	echo "-------------------------"
 	echo "This script was designed for ingestion in LS5, LS7 and LS8."
