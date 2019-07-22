@@ -38,12 +38,12 @@ Landzat 7 comes with ToA Reflectance bands. This images must not be indexed or i
 datacube deployment so this script removes that files for LS7 ingestion.
 
 ```sh
-nohup ./IngestBatch.sh /source_storage/LS7_ETM_LEDAPS/ /dc_storage/LS7_ETM_LEDAPS/ingest_file.yml
+nohup ./IngestBatch.sh /source_storage/LS7_ETM_LEDAPS/ /dc_storage/LS7_ETM_LEDAPS/ingest_file.yml /dc_storage/LS7_ETM_LEDAPS/mgen_script.py
 ```
 
 Ingesting LS8_OLI_LASRC
 
 ```sh
-nohup ./IngestBatch.sh /source_storage/LS8_OLI_LASRC/ /dc_storage/LS8_OLI_LASRC/ingest_file.yml
+nohup ./IngestBatch.sh /source_storage/LS8_OLI_LASRC/ /dc_storage/LS8_OLI_LASRC/ingest_file.yml /dc_storage/LS8_OLI_LASRC/mgen_script.py
 ```
 
