@@ -61,7 +61,8 @@ then
 	echo "Ingestion will be performed using $threads threads"
 	datacube -v ingest --allow-product-changes --executor multiproc $threads -c $ingestConfigFile
 	rm -rf "/source_storage/tmp/"
-then
+
+else
 	echo "El comando ha sido mal especificado por favor revise el comando y vuelva a intentarlo"
     echo "nohup ./IngestBatch.sh /source_storage/LS7_ETM_LEDAPS/ /dc_storage/LS7_ETM_LEDAPS/ingest_file.yml /dc_storage/LS7_ETM_LEDAPS/mgen_script.py"
 fi
