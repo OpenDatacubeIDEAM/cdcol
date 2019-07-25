@@ -1,6 +1,6 @@
 import xarray as xr
 import numpy as np
-print "Excecuting medianas v2"
+print("Excecuting medianas v2")
 
 #La funcion isin permite verificar si el elemento (elemento) que se pasa por parametro está dentro del arreglo (test_elements)
 #Esta funcion se define para verificar los valores validos de la mascara de nube (pixel_qa) 
