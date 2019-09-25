@@ -1,0 +1,293 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# ## Atributos generados
+
+execID=1
+algorithm = "Biomas estimated"
+version= "1.0"
+
+
+# ## Parámetros comunes
+
+
+products = ['LS8_OLI_LASRC'] #Productos sobre los que se hará la consulta (unidades de almacenamiento)
+bands=["red","nir", "swir1","swir2"] #arreglo de bandas #"blue","green",
+time_ranges = [("2016-01-01", "2016-02-25")] #Una lista de tuplas, cada tupla representa un periodo
+#área sobre la cual se hará la consulta:
+min_long = -73
+min_lat = 11
+max_long = -72
+max_lat = 12
+
+
+# ## Parámetros específicos del algoritmo
+
+normalized=True
+minValid=1;
+
+nodata=-9999
+
+
+# # Importar Librerías de trabajo
+
+import datacube
+from datacube.storage import netcdf_writer
+from datacube.model import Variable, CRS
+import os
+import re
+import xarray as xr
+import numpy as np
+import gdal
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.datasets import make_regression
+from sklearn import metrics
+from sklearn.metrics import cohen_kappa_score
+
+
+def exportar(fname, data, geo_transform, projection):
+    driver = gdal.GetDriverByName('GTiff')
+    rows, cols = data.shape
+    dataset = driver.Create(fname, cols, rows, 1, gdal.GDT_Byte)
+    dataset.SetGeoTransform(geo_transform)
+    dataset.SetProjection(projection)
+    band = dataset.GetRasterBand(1)
+    band.WriteArray(data)
+    dataset = None
+
+dc = datacube.Datacube(app="{}_{}_{}".format(algorithm,version,execID))
+
+
+# ### Datos de entrenamiento
+
+train_data_path = '/home/cubo/jupyter/Biomasa/ipcc'
+
+
+#  ## Consulta datos CDCol -IDEAM
+
+# ### Máscara de nubes
+
+
+kwargs={}
+dc = datacube.Datacube(app="{}_{}_{}".format(algorithm,version,execID))
+for product in products:
+    i=0
+    validValues=set()
+    if product=="LS7_ETM_LEDAPS":
+        validValues=[66,68,130,132]
+    elif product == "LS8_OLI_LASRC":
+        validValues=[322, 386, 834, 898, 1346, 324, 388, 836, 900, 1348]
+    for tr in time_ranges:
+        _data = dc.load(product=product, longitude=(min_long, max_long), latitude=(min_lat, max_lat), time=tr)
+        if len(_data.data_vars)==0:
+            break
+        cloud_mask=np.isin(_data["pixel_qa"].values, validValues)
+        for band in bands:
+            _data[band].values=np.where(np.logical_and(_data.data_vars[band]!=nodata,cloud_mask),_data.data_vars[band], np.nan)
+        _undesired=list(set(_data.keys())-set(bands+['latitude','longitude','time']))
+        _data=_data.drop(_undesired)
+            
+        if "xarr"+str(i) in kwargs:
+            kwargs["xarr"+str(i)]=xr.concat([kwargs["xarr"+str(i)],_data.copy(deep=True)], 'time')
+        else:
+            kwargs["xarr"+str(i)]=_data
+    i+=1
+del _data
+
+
+#El algoritmo recibe los productos como xarrays en variablles llamadas xarr0, xarr1, xarr2... 
+xarr0=kwargs["xarr0"]
+del kwargs
+
+
+# ## Consulta RADAR ALOS 
+
+Consulta Radar data
+_data3 = dc.load(product="ALOS2_PALSAR_MOSAIC", longitude=(min_long, max_long), latitude=(min_lat, max_lat), time=("2016-01-01", "2016-12-31"))
+
+xarr0['hh']=_data3['hh']
+xarr0['hv']=_data3['hv']
+
+# ### Cálculo Índices radar
+
+
+banda1=_data3['hh']
+banda2=_data3['hv']
+
+RDFI =(banda1-banda2)/(banda1+banda2)
+#LPR
+s1  = (banda1+banda2)
+s2  =(banda1-banda2)
+s3 = 2 * (banda1 **(1/2))*(banda2 **(1/2)) * np.cos(banda1-banda2)
+s4 =2 * (banda1 **(1/2))*(banda2 **(1/2)) * np.sin(banda1-banda2)
+LPR =(s1+s2)/(s1-s2)
+SC = 0.5*s1 - 0.5 * s4
+OC = 0.5*s1 + 0.5 * s4
+CPR =(SC/OC)
+m = (((s2**2)+(s3**2)+(s4**2))**(1/2))/s1
+
+
+### Compuesto temporal de medianas
+
+medians={} 
+for band in bands:
+    datos=xarr0[band].values
+    allNan=~np.isnan(datos) #Una mascara que indica qué datos son o no nan. 
+    if normalized: #Normalizar, si es necesario.
+        #Para cada momento en el tiempo obtener el promedio y la desviación estándar de los valores de reflectancia
+        m=np.nanmean(datos.reshape((datos.shape[0],-1)), axis=1)
+        st=np.nanstd(datos.reshape((datos.shape[0],-1)), axis=1)
+        # usar ((x-x̄)/st) para llevar la distribución a media 0 y desviación estándar 1, 
+        # y luego hacer un cambio de espacio para la nueva desviación y media. 
+        datos=np.true_divide((datos-m[:,np.newaxis,np.newaxis]), st[:,np.newaxis,np.newaxis])*np.nanmean(st)+np.nanmean(m)
+    #Calcular la mediana en la dimensión de tiempo 
+    medians[band]=np.nanmedian(datos,0) 
+    #Eliminar los valores que no cumplen con el número mínimo de pixeles válidos dado. 
+    medians[band][np.sum(allNan,0)<minValid]=np.nan
+    
+del datos
+
+rows, cols = medians[bands[0]].shape
+
+
+# ## Cálculo de Índices Espectrales datos CDCol - IDEAM
+medians["ndvi"]=(medians["nir"]-medians["red"])/(medians["nir"]+medians["red"])
+medians["ndmi"]=(medians["nir"]-medians["swir1"])/(medians["nir"]+medians["swir1"])
+medians["nbr"]=(medians["nir"]-medians["swir2"])/(medians["nir"]+medians["swir2"])
+medians["nbr2"]=(medians["swir1"]-medians["swir2"])/(medians["swir1"]+medians["swir2"])
+medians["savi"]=(medians["nir"]-medians["red"])/(medians["nir"]+medians["red"]+1)*2 
+medians['rdfi']=RDFI[0].values
+medians['cpR']=CPR[0].values
+medians['hh']=banda1[0].values
+medians['hv']=banda2[0].values
+
+
+bands=list(medians.keys())
+bands
+
+_coords=xarr0.coords
+_crs=xarr0.crs
+
+
+rows, cols = medians[bands[0]].shape
+
+## Projection 
+#rows, cols = medians[bands[0]].shape
+#(originX, pixelWidth, 0, originY, 0, pixelHeight)
+geo_transform=(_coords["longitude"].values[0], 0.000269995,0, _coords["latitude"].values[0],0,-0.000271302)
+proj=_crs.wkt
+#proj='GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY["EPSG","6326"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4326"]]'
+
+
+
+files = [f for f in os.listdir(train_data_path) if f.endswith('.shp')]
+classes = [f.split('.')[0] for f in files]
+shapefiles = [os.path.join(train_data_path, f) for f in files if f.endswith('.shp')]
+shapefiles
+
+
+# In[127]:
+
+
+from sklearn.utils.multiclass import unique_labels
+unique_labels(shapefiles)
+
+
+# In[128]:
+
+
+pValFilter= 1
+pAttributo = 'k10'
+pAttrAGB = 'cha_HD'
+labeled_pixels = np.zeros((rows, cols)) # imagen base de zeros donde empieza a llenar
+dataSource = gdal.OpenEx(shapefiles[0], gdal.OF_VECTOR)
+layer = dataSource.GetLayer(0)
+
+
+# In[129]:
+
+
+pClasesName = []
+for feature in layer:
+    pClasesName.append(feature.GetField(pAttributo))
+    pClasesName = list(dict.fromkeys(pClasesName)) # remueve Duplicados
+print(pClasesName)
+feature.GetField(pAttrAGB)
+
+
+# In[130]:
+
+
+##ULTIMA FUNCION DEFINIDA RANDOM FOREST REGRESSION
+def rasterizar_entrenamiento(file_Shape,  pValFilter, pAttrFil, pAttrAGB,rows, cols, geo_transform, projection):
+        labeled_pixels = np.zeros((rows, cols)) # imagen base de zeros donde empieza a llenar
+        dataSource = gdal.OpenEx(file_Shape, gdal.OF_VECTOR)
+        #layer = dataSource.GetLayer(0)
+        layer.SetAttributeFilter(pAttrFil + " <> " + "'" + str(pValFilter) + "'")
+        print(layer.GetFeatureCount())
+        pClasesAGB = []
+        #lee todos los poligonos para extraer el numero de clases en el arreglo 
+        for feature in layer:
+            pClasesAGB.append(feature.GetField(pAttrAGB))
+        pClasesAGB = list(dict.fromkeys(pClasesAGB)) # remueve Duplicados
+        print(pClasesAGB)
+        pClase = 0 
+        for val in pClasesAGB:
+            #pClase = pClase+1
+            #print(pClase)
+            layer.SetAttributeFilter(pAttrAGB + " = " + "'" + str(val)) 
+            #print(layer.GetFeatureCount())
+            print("AGB:", val , "nroPol:", layer.GetFeatureCount())
+            driver = gdal.GetDriverByName('MEM')
+            target_ds = driver.Create('', cols, rows, 1, gdal.GDT_UInt16)
+            target_ds.SetGeoTransform(geo_transform)
+            target_ds.SetProjection(projection)
+            gdal.RasterizeLayer(target_ds, [1], layer, burn_values=[val]) ## Asigna el valor de label al poligono 
+            #return target_ds
+            band = target_ds.GetRasterBand(1)
+            labeled_pixels += band.ReadAsArray()
+        #target_ds = None
+        return labeled_pixels
+
+
+ImagesTrain = []
+for K in pClasesName: # Recorre los ipcc o Kfold
+    pima = rasterizar_entrenamiento(shapefiles[0], K, pAttributo, pAttrAGB, rows, cols, geo_transform, proj) #rasteriza todos menos el kfold
+    ImagesTrain.append(pima)
+    ##############con la imagen rasterizada se realiza clasificacion en esta parte del codigo para cada uno de los K-fold   ##################
+
+
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.externals import joblib
+
+
+import datetime
+start = datetime.datetime.now()  
+print ('Comenzando Clasificacion: %s\n' % (start) )
+
+## CLASIFICACIÓN DE VALORES AGB POR RANDOM FOREST REGRESSION
+kClasificaciones = []
+# Parametros de la clasificacion
+maxDepth=2
+RandState=0
+NroEstimator=10
+
+#bands_data = np.dstack(datosBandas)
+bands_data=[]
+for band in bands: 
+     bands_data.append(medians[band])
+bands_data = np.dstack(bands_data)
+training_samples = bands_data[is_train]
+np.isfinite(training_samples)
+_msk=np.sum(np.isfinite(training_samples),1)>1
+training_samples= training_samples[_msk,:]
+training_labels=training_labels[_msk]
+#mascara valores nan por valor no data
+mask_nan=np.isnan(training_samples)
+training_samples[mask_nan]=-9999
+##Clasificación RF por regresión 
+classifier = RandomForestRegressor(max_depth= maxDepth, random_state=RandState,   n_estimators=NroEstimator)
+classifier.fit(training_samples, training_labels)
+rows, cols, n_bands = bands_data.shape
+n_samples = rows*cols
+flat_pixels = bands_data.reshape((n_samples, n_bands))
