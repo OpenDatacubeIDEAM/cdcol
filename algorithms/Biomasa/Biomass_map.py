@@ -1,8 +1,27 @@
+##
+#//Main code body written by: Pedro Rodriguez-Veiga (1)
+#//(1) National Centre for Earth Observation - University of Leiceicester (UK)
+#//(2) IDEAM - Institute of Hydrology, Meteorology and Environmental Studies (Colombia)
+#//Purpose: Development Colombia's aboveground biomass map algorithm
+#//Current version: 5.1
+#Adapted code algorithm by Yilsey Benavides in Datacube Colombia IDEAM
+#//Improvements current version:
+#//   - AGB estimated using Chave et al. and Alvarez et al. type I allometries
+#//   - New dataset: ALOS-2 PALSAR-2 composite co-registered to Sentinel-1 (SAR-to-SAR)
+#//   - The k-fold cross-validation was converted to loop functions
+#//   - The PPM validation is now completely independent (the corresponding conglomerados within the the same location are not used for kfold cal/val)
+#//   - Error propagation on the uncertainty layer (RMSE or Rel_RMSE)
+#//   - New values for the propagation error parameters (Ea, Es, etc)
+#//   - Use "reduceRegions" instead of "sampleRegions" to extract signatures/AGB for cal/val 
+#//   - Improvements in the loop to optimize the processing
+#//   - Some unused code was removed
+
+
 #!/usr/bin/env python
 # coding: utf-8
 
 # 
-# ### Adapatación código GEE
+
 
 # ### Parámetros
 
@@ -569,7 +588,13 @@ training_labels
 
 
 exportar("salida-class-rfr.tiff", classification, geo_transform, proj)
+### percent 5 , 95 del arreglo de clasificaciones
 
+percentClasificaciones=[]
+for i in range(0,len(kClasificaciones)):
+  percent=np.percentile(kClasificaciones[i],q=[5,95])
+  percentClasificaciones.append(percent)
+print(percentClasificaciones)
 
 # ## Preparar la salida
 # La salida de los algoritmos puede expresarse como: 
@@ -623,7 +648,3 @@ nco.close()
 
 
 # In[ ]:
-
-
-
-
