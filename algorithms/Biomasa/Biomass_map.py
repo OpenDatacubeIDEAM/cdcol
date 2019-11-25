@@ -1,63 +1,24 @@
-##
-#//Main code body written by: Pedro Rodriguez-Veiga (1)
-#//(1) National Centre for Earth Observation - University of Leiceicester (UK)
-#//(2) IDEAM - Institute of Hydrology, Meteorology and Environmental Studies (Colombia)
-#//Purpose: Development Colombia's aboveground biomass map algorithm
-#//Current version: 5.1
-#Adapted code algorithm by Yilsey Benavides in Datacube Colombia IDEAM
-#//Improvements current version:
-#//   - AGB estimated using Chave et al. and Alvarez et al. type I allometries
-#//   - New dataset: ALOS-2 PALSAR-2 composite co-registered to Sentinel-1 (SAR-to-SAR)
-#//   - The k-fold cross-validation was converted to loop functions
-#//   - The PPM validation is now completely independent (the corresponding conglomerados within the the same location are not used for kfold cal/val)
-#//   - Error propagation on the uncertainty layer (RMSE or Rel_RMSE)
-#//   - New values for the propagation error parameters (Ea, Es, etc)
-#//   - Use "reduceRegions" instead of "sampleRegions" to extract signatures/AGB for cal/val 
-#//   - Improvements in the loop to optimize the processing
-#//   - Some unused code was removed
-
-
 #!/usr/bin/env python
 # coding: utf-8
 
+# ### Adapatación código GEE 
 # 
-
-
-# ### Parámetros
-
-# In[1]:
-
-
-execID=1
-algorithm = "RandomForestReg"
-version= "1.0"
-
-
-# In[2]:
-
-
-products = ['LS8_OLI_LASRC'] #Productos sobre los que se hará la consulta (unidades de almacenamiento)
-bands=["red","nir", "swir1","swir2"] #arreglo de bandas #"blue","green",
-time_ranges = [("2016-01-01", "2016-02-25")] #Una lista de tuplas, cada tupla representa un periodo
-#área sobre la cual se hará la consulta:
-min_long = -73
-min_lat = 11
-max_long = -72
-max_lat = 12
-
-
-# In[3]:
-
-
-normalized=True
-minValid=1;
-
-nodata=-9999
-
+# 
+# Codigo en GEE, Escrito por Pedro Rodriguez-Veiga
+# //Organization: National Centre for Earth Observation - University of Leiceicester (UK)
+# //In colaboration with: IDEAM - Institute of Hydrology, Meteorology and Environmental Studies (Colombia)
+# //Purpose: Development / testing Colombia's aboveground biomass map algorithm
+# //Current version: 4.1
+# //Improvements version 4.1:
+# //   - AGB estimated using Chave et al. and Alvarez et al. type I allometries
+# //   - Co-registration ALOS-2 PALSAR-2 composite to Sentinel-1
+# //   - The k-fold cross-validation was converted to loop functions
+# //   - The PPM validation is now completely independent (the corresponding conglomerados within the the same location are not used for cal/val)
+# //   - Error propagation on the uncertainty layer (RMSE or Rel_RMSE)
 
 # ### Librerías
 
-# In[4]:
+# In[1]:
 
 
 import datacube
@@ -68,74 +29,85 @@ import re
 import xarray as xr
 import numpy as np
 import gdal
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.datasets import make_regression
 from sklearn import metrics
-from sklearn.metrics import cohen_kappa_score
-
-
-# In[6]:
-
-
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.externals import joblib
 from sklearn.utils.multiclass import unique_labels
 import datetime
 import matplotlib.pyplot as plt
+import numpy as np
+import os
+from osgeo import gdal,ogr
+from glob import glob
+import matplotlib as mpl
 
 
-# ### Funciones
+# ### Definición de funciones
 
-# In[7]:
-
-
-##ULTIMA FUNCION DEFINIDA
-def rasterizar_entrenamiento(file_Shape,  pValFilter, pAttrFil, pAttrAGB,rows, cols, geo_transform, projection):
-        labeled_pixels = np.zeros((rows, cols)) # imagen base de zeros donde empieza a llenar
-        dataSource = gdal.OpenEx(file_Shape, gdal.OF_VECTOR)
-        #layer = dataSource.GetLayer(0)
-        layer.SetAttributeFilter(pAttrFil + " <> " + "'" + str(pValFilter) + "'")
-        print(layer.GetFeatureCount())
-        pClasesAGB = []
-        #lee todos los poligonos para extraer el numero de clases en el arreglo 
-        for feature in layer:
-            pClasesAGB.append(feature.GetField(pAttrAGB))
-        pClasesAGB = list(dict.fromkeys(pClasesAGB)) # remueve Duplicados
-        print(pClasesAGB)
-        pClase = 0 
-        for val in pClasesAGB:
-            layer.SetAttributeFilter(pAttrAGB + " = " + "'" + str(val)) 
-            print("AGB:", val , "nroPol:", layer.GetFeatureCount())
-            driver = gdal.GetDriverByName('MEM')
-            target_ds = driver.Create('', cols, rows, 1, gdal.GDT_UInt16)
-            target_ds.SetGeoTransform(geo_transform)
-            target_ds.SetProjection(projection)
-            gdal.RasterizeLayer(target_ds, [1], layer, burn_values=[val]) ## Asigna el valor de label al poligono 
-            band = target_ds.GetRasterBand(1)
-            labeled_pixels += band.ReadAsArray()
-        return labeled_pixels
+# In[2]:
 
 
-# In[8]:
+def exportar(fname, data, geo_transform, projection):
+    driver = gdal.GetDriverByName('GTiff')
+    rows, cols = data.shape
+    dataset = driver.Create(fname, cols, rows, 1, gdal.GDT_Byte)
+    dataset.SetGeoTransform(geo_transform)
+    dataset.SetProjection(projection)
+    band = dataset.GetRasterBand(1)
+    band.WriteArray(data)
+    dataset = None
+
+
+# In[3]:
+
+
+def rasterizar_entrenamiento(plyr, pValFilter, pAttrFil, pAttrAGB, rows, cols , geo_transform, projection):
+    labeled_pixels = np.zeros((rows, cols)) # imagen base de zeros donde empieza a llenar
+    plyr.SetAttributeFilter(pAttrFil + " <> " + "'" + str(pValFilter) + "'")  #### Con este filtra
+    print("Nro de Pol Filtrados  <> de",str(pValFilter),":", plyr.GetFeatureCount())
+    pClasesAGB = []
+    for feature in plyr:
+        pClasesAGB.append(feature.GetField(pAttrAGB))
+        pClasesAGB = list(dict.fromkeys(pClasesAGB)) # remueve Duplicados si hay dos o mas poligonos con el mismo AGB
+    print(pClasesAGB)
+  
+  #driver = gdal.GetDriverByName('MEM')
+   #target_ds = driver.Create('', cols, rows, 1, gdal.GDT_UInt16)
+    for val in pClasesAGB:
+        plyr.SetAttributeFilter(pAttrAGB + " = " + str(val))  #### Con este filtra
+        print("AGB:", val , "nroPol:", plyr.GetFeatureCount())
+        driver = gdal.GetDriverByName('MEM')
+        target_ds = driver.Create('', cols, rows, 1, gdal.GDT_UInt16)
+        target_ds.SetGeoTransform(geo_transform)
+        target_ds.SetProjection(projection)
+        gdal.RasterizeLayer(target_ds, [1], plyr, burn_values=[val]) ## Asigna el valor de label al poligono 
+      #return target_ds
+        band = target_ds.GetRasterBand(1)
+        labeled_pixels += band.ReadAsArray()
+    return labeled_pixels
+
+
+# In[4]:
 
 
 def ValidarClass(plyr, pValFilter, pAttrFil, pAttrAGB, geo_transform, projection, kFoldImg):
         rows, cols = kFoldImg.shape
         labeled_pixels = np.zeros((rows, cols)) # imagen base de zeros donde empieza a llenar
-        layer.SetAttributeFilter(pAttrFil + " = " + "'" + str(pValFilter) + "'")  #### Con este filtra
-        print("Nro Poligonos para el Kfold", str(pValFilter), " = ", layer.GetFeatureCount())
+        plyr.SetAttributeFilter(pAttrFil + " = " + "'" + str(pValFilter) + "'")  #### Con este filtra
+        print("Nro Poligonos para el Kfold", str(pValFilter), " = ", plyr.GetFeatureCount())
         pClasesAGB = []
-        for feature in layer:
+        for feature in plyr:
              pClasesAGB.append(feature.GetField(pAttrAGB))
         pClasesAGB = list(dict.fromkeys(pClasesAGB)) # remueve Duplicados si hay dos o mas poligonos con el mismo AGB
         for val in pClasesAGB:
-            layer.SetAttributeFilter(pAttrAGB + " = " + str(val))  #### Con este filtra
-            print("AGB:", val , "nroPol:", layer.GetFeatureCount())
+            plyr.SetAttributeFilter(pAttrAGB + " = " + str(val))  #### Con este filtra
+            print("AGB:", val , "nroPol:", plyr.GetFeatureCount())
             driver = gdal.GetDriverByName('MEM')
             target_ds = driver.Create('', cols, rows, 1, gdal.GDT_UInt16)
             target_ds.SetGeoTransform(geo_transform)
             target_ds.SetProjection(projection)
-            gdal.RasterizeLayer(target_ds, [1], layer, burn_values=[val]) ## Asigna el valor de label al poligono 
+            gdal.RasterizeLayer(target_ds, [1], plyr, burn_values=[val]) ## Asigna el valor de label al poligono 
             band = target_ds.GetRasterBand(1)
             ### Valida el poligono contra los datos del shape
             pImgPol = np.array(band.ReadAsArray())
@@ -153,41 +125,59 @@ def ValidarClass(plyr, pValFilter, pAttrFil, pAttrAGB, geo_transform, projection
 
 
 
-# In[9]:
+# ### Definción de Consulta
+
+# #### Parámetros de Consulta
+
+# In[5]:
 
 
-def exportar(fname, data, geo_transform, projection):
-    driver = gdal.GetDriverByName('GTiff')
-    rows, cols = data.shape
-    dataset = driver.Create(fname, cols, rows, 1, gdal.GDT_Byte)
-    dataset.SetGeoTransform(geo_transform)
-    dataset.SetProjection(projection)
-    band = dataset.GetRasterBand(1)
-    band.WriteArray(data)
-    dataset = None
+execID=1
+algorithm = "RandomForestReg"
+version= "1.0"
 
 
-# In[12]:
+# ##### Los parametros que encontrará a continuación corresponde 
+# 
+# - products = Unidad de almacenamiento que desea consultar (Sátelite), Landsat 5, 7 y 8 
+# - bands = Las bandas que desea emplear para el calculo de medianas y los índices que encontrará debajo  de la función de medianas
+# - time_ranges = Rango o periodo de tiempo a cosultar (Veriricar que corresponda a los datos disponibles por unidad de almacenamiento)
+# - Área = El usuario debe definir la longitud mínima, máxima y la latitud mínima, máxima del área de consulta
+# - normalized = Función para normalizar los valores resultantes del cálculo de las medianas
+# - minValid = Valor mínimo valido que empleará el algoritmo  para el cálculo de las medianas
+# - nodata= -9999 Es el valor por defecto que se dará a los valores no data en el cálculo de las medianas
+
+# In[6]:
+
+
+products = ['LS8_OLI_LASRC'] #Productos sobre los que se hará la consulta (unidades de almacenamiento)
+bands=["red","nir", "swir1","swir2","green","blue"] #arreglo de bandas #"blue","green",
+time_ranges = [("2016-01-01", "2016-02-25")] #Una lista de tuplas, cada tupla representa un periodo
+#área sobre la cual se hará la consulta:
+min_long = -76
+min_lat = 10
+max_long = -72
+max_lat = 12
+
+
+# In[7]:
+
+
+normalized=True
+minValid=1;
+
+nodata=-9999
+
+
+# In[8]:
 
 
 dc = datacube.Datacube(app="{}_{}_{}".format(algorithm,version,execID))
 
 
-# ### Datos de entrenamiento
+# #### Función de Consulta de unidad de almacenamiento Landsat con parámetros asignados
 
-# In[13]:
-
-
-train_data_path = '/home/cubo/jupyter/Biomasa/ipcc'
-
-
-#  ## Consulta base de datos CDCol -IDEAM
-
-# ### Máscara de nubes
-# 
-# Con el nuevo formato, los valores de `pixel_qa` dependen del producto. Para crear la máscara de nubes, se determinan los valores válidos para el producto actual y se usa la banda `pixel_qa` para generar un arreglo de datos booleanos: Para cada posición, si el valor de pixel_qa está en la lista de valores válidos será `True`, en caso contrario será `False`.
-
-# In[14]:
+# In[9]:
 
 
 kwargs={}
@@ -217,7 +207,7 @@ for product in products:
 del _data
 
 
-# In[15]:
+# In[10]:
 
 
 #El algoritmo recibe los productos como xarrays en variablles llamadas xarr0, xarr1, xarr2... 
@@ -225,63 +215,59 @@ xarr0=kwargs["xarr0"]
 del kwargs
 
 
-# ### Consulta RADAR ALOS 
+# #### Función de Consulta de unidad de almacenamiento Radar ALOS PALSAR con parámetros asignados
+# 
 
-# In[16]:
+# In[11]:
 
 
 _data3 = dc.load(product="ALOS2_PALSAR_MOSAIC", longitude=(min_long, max_long), latitude=(min_lat, max_lat), time=("2016-01-01", "2016-12-31"))
 
 
-# In[17]:
+# In[12]:
 
 
 xarr0['hh']=_data3['hh']
 xarr0['hv']=_data3['hv']
 
 
-# ### Cálculo Índices Radar
+# 
+# 
 
-# In[18]:
+# #### Función de Cálculo de Índices para unidad de alamacenamiento RADAR ALOS PALSAR
+
+# In[13]:
 
 
 banda1=_data3['hh']
 banda2=_data3['hv']
 
 
-# #### Cálculo índice 1 RDFI
-
-# In[19]:
+# In[14]:
 
 
+#CÁLCULO DE 1ER ÍNDICE RDFI
 RDFI =(banda1-banda2)/(banda1+banda2)
 
 
-# In[20]:
+# In[15]:
 
 
-#LPR
+#CÁLCULO DE 2DO ÍNDICE SPR
 s1  = (banda1+banda2)
 s2  =(banda1-banda2)
 s3 = 2 * (banda1 **(1/2))*(banda2 **(1/2)) * np.cos(banda1-banda2)
 s4 =2 * (banda1 **(1/2))*(banda2 **(1/2)) * np.sin(banda1-banda2)
 LPR =(s1+s2)/(s1-s2)
-
-
-# #### Cálculo índice 2 CPR
-
-# In[21]:
-
-
 SC = 0.5*s1 - 0.5 * s4
 OC = 0.5*s1 + 0.5 * s4
 CPR =(SC/OC)
 m = (((s2**2)+(s3**2)+(s4**2))**(1/2))/s1
 
 
-# ## Compuesto temporal de medianas libre de nubes
+# #### Función cálculo de medianas de la consulta anterior 
 
-# In[22]:
+# In[16]:
 
 
 medians={} 
@@ -303,165 +289,174 @@ for band in bands:
 del datos
 
 
-# In[23]:
+# In[17]:
 
 
+# Dimensiones de filas y columnas que empleará el algoritmo para definir su salida final
 rows, cols = medians[bands[0]].shape
 
 
-# ## Cálculo de Índices datos ópticos CDCol - IDEAM
+# #### Cálculo de índices a partir de la consulta de medianas realizada anteriormente
 
-# In[24]:
+# In[18]:
 
 
 medians["ndvi"]=(medians["nir"]-medians["red"])/(medians["nir"]+medians["red"])
 
 
-# In[26]:
+# In[19]:
 
 
 medians["ndmi"]=(medians["nir"]-medians["swir1"])/(medians["nir"]+medians["swir1"])
 
 
-# In[27]:
+# In[20]:
 
 
 medians["nbr"]=(medians["nir"]-medians["swir2"])/(medians["nir"]+medians["swir2"])
 
 
-# In[42]:
+# In[21]:
 
 
 medians["nbr2"]=(medians["swir1"]-medians["swir2"])/(medians["swir1"]+medians["swir2"])
 
 
-# In[28]:
+# In[22]:
 
 
 medians["savi"]=(medians["nir"]-medians["red"])/(medians["nir"]+medians["red"]+1)*2 
 
 
-# In[29]:
+# In[23]:
 
 
 medians['rdfi']=RDFI[0].values
 
 
-# In[30]:
+# In[24]:
 
 
 medians['cpR']=CPR[0].values
 
 
-# In[31]:
+# In[25]:
 
 
 medians['hh']=banda1[0].values
 
 
-# In[32]:
+# In[26]:
 
 
 medians['hv']=banda2[0].values
 
 
-# In[33]:
+# In[27]:
 
 
+#Lista de bandas del arreglo cálculado 
 bands=list(medians.keys())
 bands
 
 
-# In[43]:
+# In[28]:
 
 
+#Registro de sistema de referencia y coordenadas del arreglo que posteriormente el algoritmo emplea en la salida
 _coords=xarr0.coords
 _crs=xarr0.crs
 
 
-# In[44]:
+# In[29]:
 
 
-rows, cols = medians[bands[0]].shape
-
-
-# In[45]:
-
-
-rows, cols
-
-
-# In[46]:
-
-
-#rows, cols = medians[bands[0]].shape
-#(originX, pixelWidth, 0, originY, 0, pixelHeight)
+#Registro de sistema de referencia y coordenadas del arreglo que posteriormente el algoritmo emplea en la salida
 geo_transform=(_coords["longitude"].values[0], 0.000269995,0, _coords["latitude"].values[0],0,-0.000271302)
 proj=_crs.wkt
-#proj='GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY["EPSG","6326"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4326"]]'
 
 
-# ### Clasificacion y regresion de Random Forest
+# ### Clasificación y regresión de Random Forest
+# 
 
-# #### Preparación de insumos vector
+# #### Prepara insumos vector
 
-# In[47]:
-
-
-files = [f for f in os.listdir(train_data_path) if f.endswith('.shp')]
-classes = [f.split('.')[0] for f in files]
-shapefiles = [os.path.join(train_data_path, f) for f in files if f.endswith('.shp')]
+# In[30]:
 
 
-# In[48]:
-
-
-pValFilter= 1
-pAttributo = 'k10'
+shapeFileCorte = r'/home/cubo/jupyter/Biomasa/ipcc/Conglomerados_8T.shp'
+ds=ogr.Open(shapeFileCorte)
+lyr=ds.GetLayer()
+print(lyr)
+##Dentro de la función de rasterización de los valores de AGB cálculado por chavez se asigna al campo "pAttrAGB" la columna correspondiente dentro del shapefile para el ejemplo corresponde a "cha_HD"
+##para la discriminación de valores por kfold se deberá asignar el attributo "pAttributo" que dentro del shapefile contiene el valor de kfold para cada poligono para el ejemplo es "k10"
+pAttributo = 'K10'
 pAttrAGB = 'cha_HD'
-labeled_pixels = np.zeros((rows, cols)) # imagen base de zeros donde empieza a llenar
-dataSource = gdal.OpenEx(shapefiles[0], gdal.OF_VECTOR)
-layer = dataSource.GetLayer(0)
-
-
-# In[49]:
-
-
+print("Nro poligonos en Shape:",lyr.GetFeatureCount())
 pClasesName = []
-for feature in layer:
+       #lee todos los poligonos para extraer el numero de clases en el arreglo 
+for feature in lyr:
     pClasesName.append(feature.GetField(pAttributo))
     pClasesName = list(dict.fromkeys(pClasesName)) # remueve Duplicados
 print(pClasesName)
+proj='GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY["EPSG","6326"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4326"]]'
 
 
-# In[50]:
+# In[31]:
 
 
+pClasesName
+
+
+# In[32]:
+
+
+###Se procede a realizar  la rasterización de los poligonos ingresados definidos con los parámetros anteriormente
 ImagesTrain = []
 for K in pClasesName: # Recorre los ipcc o Kfold
-    pima = rasterizar_entrenamiento(shapefiles[0], K, pAttributo, pAttrAGB, rows, cols, geo_transform, proj) #rasteriza todos menos el kfold
+    pima = rasterizar_entrenamiento(lyr, K, pAttributo, pAttrAGB, rows, cols, geo_transform, proj) #rasteriza todos menos el kfold
+    print(pima.max())
     ImagesTrain.append(pima)
-    ##############con la imagen rasterizada se realiza clasificacion en esta parte del codigo para cada uno de los K-fold   ##################
+        ##############   con la imagen rasterizada se realiza clasificacion en esta parte del codigo para cada uno de los K-fold   ##################
+    
 
 
-# #### Iniciando clasificación Random Forest regressor
+# In[33]:
 
-# In[51]:
+
+ImagesTrain[0].max()
+
+
+# In[34]:
+
+
+## Ploteo de poligonos rasterizados
+print("imagen ipcc 10")
+plt.imshow(ImagesTrain[1]);# muestra la ultima ejecucióm
+
+
+# In[ ]:
+
+
+
+
+
+# ## Itera las clasificaciones de los K-Fold y las guarda en un arreglo (kClasificaciones)
+
+# In[35]:
 
 
 start = datetime.datetime.now()  
 print ('Comenzando Clasificacion: %s\n' % (start) )
 
 kClasificaciones = []
-# Parametros de la clasificacion
+# Parametros de la clasificación definidos para  la función Random Forest Regressor
 maxDepth=2
 RandState=0
 NroEstimator=10
 
 
-# #### Clasificación y mapa de salida para cada kfold 
-
-# In[52]:
+# In[36]:
 
 
 for i in range(0,len(ImagesTrain)):
@@ -469,182 +464,85 @@ for i in range(0,len(ImagesTrain)):
     labeled_pixels=ImagesTrain[i]
     is_train = np.nonzero(labeled_pixels)
     training_labels = labeled_pixels[is_train]
-  ###
-    #datosBandas = src_ds.ReadAsArray()   
-  ####
-    #bands_data = np.dstack(datosBandas)
     bands_data=[]
     for band in bands: 
         bands_data.append(medians[band])
     bands_data = np.dstack(bands_data)
+    print("bands_data")
+    print(bands_data)
     training_samples = bands_data[is_train]
     np.isfinite(training_samples)
     _msk=np.sum(np.isfinite(training_samples),1)>1
     training_samples= training_samples[_msk,:]
     training_labels=training_labels[_msk]
-  #mascara valores nan por valor no data
+    #asignación de mascara valores nan por valor no data
     mask_nan=np.isnan(training_samples)
     training_samples[mask_nan]=-9999
-  ##Clasificación RF por regresión 
+    ##Clasificación RF por regresión con los parametros definidos anteriormente
     classifier = RandomForestRegressor(max_depth= maxDepth, random_state=RandState,   n_estimators=NroEstimator)
     classifier.fit(training_samples, training_labels)
     rows, cols, n_bands = bands_data.shape
     n_samples = rows*cols
     flat_pixels = bands_data.reshape((n_samples, n_bands))
-  #mascara valores nan por valor no data
+    #asignación de mascara valores nan por valor no data=-9999
     mask_nan=np.isnan(flat_pixels)
     flat_pixels[mask_nan]=-9999
     flat_pixels = bands_data.reshape((n_samples, n_bands))
+    ##preparación de resultados en matriz con dimensiones igual a las consultadas al principio del código
     result = classifier.predict(flat_pixels)
     classification = result.reshape((rows, cols))
     kClasificaciones.append(classification)
 
 
+# ### Preparación de la salida de medianas resultante de la clasificación 
+# 
+
 # In[ ]:
 
 
-fig, axs = plt.subplots(1, 3, figsize=(20,10))
-pCont = 0
-for ax, pIma in zip(axs, kClasificaciones):
-  ax.set_title('Class Kfold ' + str(pCont))
-  ax.imshow(pIma)
-  pCont += 1
+##Preparación de salida final 
+kClasificaciones=np.asarray(kClasificaciones)
+ImgResultado = np.zeros((rows, cols))
+#Recorrer la matriz pixel a pixel
+for l in range(0,cols):
+    for j in range(0,rows): 
+        dato = kClasificaciones[:,j,l]
+        ## Cálculo de percentil 5 y 95 de los datos resultantes de cada set de datos correspondientes con las 7 clasificaciones anteriore resultantes, calculado pixel a pixel
+        percent=np.percentile(dato,q=[5,95])
+        #Cálculo de mediana para set de datos extrayendo los valores que se encuentre <5 y > 95 de los valores correspondientes a percentil, generando un solo pixel resultante.
+        datoFinal = np.median(dato[np.logical_and(dato>percent[0],dato<percent[1])])
+        ImgResultado[j,l] = datoFinal
+
+plt.imshow(ImgResultado)
 
 
-# In[76]:
+# In[ ]:
 
 
-import matplotlib.pyplot as plt
-plt.imshow(ImagesVal[0])
+ImgResultado
 
 
-# #### Validación de los kfold con valores de AGB del poligono
+# ### Validación de resultados optenidos de la clasificación 
 
-# In[53]:
+# In[ ]:
 
 
-#valid = ValidarClass(lyr, K, pAttributo, pAttrAGB, gt, proj, kClasificaciones[0])
 ImagesVal1 = []
 k=10
 pContKfold = 0
 for K in pClasesName: # Recorre los ipcc o Kfold
-    valid = ValidarClass(shapefiles[0], K, pAttributo, pAttrAGB, geo_transform, proj, kClasificaciones[pContKfold]) #rasteriza todos menos el kfold
+    valid = ValidarClass(lyr, K, pAttributo, pAttrAGB, geo_transform, proj, kClasificaciones[pContKfold]) #rasteriza todos menos el kfold
     ImagesVal1.append(valid)
     k=k+1
     pContKfold += 1
     print(k)
 
 
-# ### Algoritmo validado y estructurado hasta aquí , las siguientes lineas se encuentran en desarrollo 
-
-# #### Medianas de salida
-
-# In[165]:
-
-
-ImagesVal1[0].mean()
-
+# ### Preparar salida 
 
 # In[ ]:
 
 
-fig, axs = plt.subplots(1,3, figsize=(20,10))
-pCont = 0
-for ax, pIma in zip(axs, kClasificaciones):
-    ax.set_title('Class Kfold ' + str(pCont))
-    ax.imshow(pIma)
-    pCont += 1
-  
+##Se llamará la función exportar por lo tanto deberá cambiar el nombre de manera que el algoritmo no sobr eescriba archivos con este nombre
+exportar("salida_test8.tiff", ImgResultado, geo_transform, proj)
 
-
-# In[ ]:
-
-
-import  matplotlib.pyplot as plt  
-
-plt.imshow(labeled_pixels)
-
-
-# In[ ]:
-
-
-labeled_pixels.min()
-
-
-# In[ ]:
-
-
-is_train = np.nonzero(labeled_pixels)
-training_labels = labeled_pixels[is_train]
-training_labels
-
-
-# ##Listado dimensiones de insumos
-# for i in  range(13):
-#     medians[bands[i]].shape
-#     print(medians[bands[i]].shape)
-
-# In[ ]:
-
-
-exportar("salida-class-rfr.tiff", classification, geo_transform, proj)
-### percent 5 , 95 del arreglo de clasificaciones
-
-percentClasificaciones=[]
-for i in range(0,len(kClasificaciones)):
-  percent=np.percentile(kClasificaciones[i],q=[5,95])
-  percentClasificaciones.append(percent)
-print(percentClasificaciones)
-
-# ## Preparar la salida
-# La salida de los algoritmos puede expresarse como: 
-# - un xarray llamado output (que debe incluir entre sus atributos el crs del sistema de coordenadas)
-# - un diccionario con varios xarray llamado `outputs`
-# - Texto, en una variable llamada `outputtxt`
-
-# In[ ]:
-
-
-import xarray as xr
-ncoords=[]
-xdims =[]
-xcords={}
-for x in _coords:
-    if(x!='time'):
-        ncoords.append( ( x, _coords[x]) )
-        xdims.append(x)
-        xcords[x]=_coords[x]
-        
-variables={}
-#variables ={k: xr.DataArray(v, dims=xdims,coords=ncoords)
-#             for k, v in medians.items()}
-variables["classification"]=xr.DataArray(kClasificaciones,dims=xdims,coords=ncoords)
-output=xr.Dataset(variables, attrs={'crs':_crs})
-
-for x in output.coords:
-    _coords[x].attrs["units"]=_coords[x].units
-
-
-# # Guardar la salida
-# La tarea genérica se encarga de generar los archivos de salida en la carpeta adecuada. 
-# 
-# __Nota__: A diferencia de la tarea genérica, que maneja los 3 tipos de salida descritos en la sección anterior, este cuaderno sólo guarda la salida definida en output
-
-# In[ ]:
-
-
-from datacube.storage import netcdf_writer
-from datacube.model import Variable, CRS
-print "{}_{}_{}.nc".format(algorithm,version,execID)
-nco=netcdf_writer.create_netcdf("{}_{}_{}.nc".format(algorithm,version,execID))
-cords=('latitude', 'longitude','time')
-for x in cords:
-    if(x!="time"):
-        netcdf_writer.create_coordinate(nco, x, _coords[x].values, _coords[x].units)
-netcdf_writer.create_grid_mapping_variable(nco, _crs)
-var= netcdf_writer.create_variable(nco, "classification", Variable(np.dtype(np.int32), nodata, ('latitude', 'longitude'), None) ,set_crs=True)
-var[:] = netcdf_writer.netcdfy_data(classification)
-nco.close()
-
-
-# In[ ]:
