@@ -11,7 +11,7 @@ print("mascara valores nan")
 mask_nan=np.logical_or(np.isnan(period_swir1), np.isnan(period_swir2))
 period_nbr2 = (period_swir1-period_swir2)/(period_swir1+period_swir2) 
 period_nbr2[mask_nan]=np.nan
-#Hace un clip para evitar valores extremos.
+#Hace un clip para evitar valores extremos
 period_nbr2[period_nbr2>1]=np.nan
 period_nbr2[period_nbr2<-1]=np.nan
 
